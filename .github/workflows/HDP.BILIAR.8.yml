@@ -1,11 +1,11 @@
 
-name: HDP BALAP 3D APK
+name: HDP BALAP MOBIL 3D APK
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - 'HDP_BALAP_3D_APK.zip'
+      - 'HDP_BALAP_3D_APK_FINAL.zip'
       - '.github/workflows/HDP.BILIAR.8.yml'
 
 permissions:
@@ -15,7 +15,7 @@ jobs:
   build-apk:
     name: Build HDP Balap Mobil 3D
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
       - name: Checkout repository
@@ -26,75 +26,35 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Setup Java 21
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
 
-      - name: Extract and verify game package
-        shell: bash
+      - name: Extract and verify correct game
         run: |
-          set -euo pipefail
-          test -f HDP_BALAP_3D_APK.zip
-          mkdir -p project
-          unzip -oq HDP_BALAP_3D_APK.zip -d project
-          test -f project/index.html
-          test -f project/package.json
-          test -f project/capacitor.config.json
-          test -f project/assets/icon-only.png
-          test -f project/manifest.webmanifest
-          test -f project/sw.js
+          set -e
+          test -f HDP_BALAP_3D_APK_FINAL.zip
+          mkdir project
+          unzip -oq HDP_BALAP_3D_APK_FINAL.zip -d project
+          test -s project/index.html
+          test -s project/package.json
+          test -s project/capacitor.config.json
+          test -s project/assets/icon-only.png
+          test -s project/assets/icon-foreground.png
+          test -s project/assets/icon-background.png
+          grep -q 'HDP_CARS' project/index.html
 
-      - name: Prepare official HDP racing icon layers
+      - name: Prepare web assets
         working-directory: project
-        shell: bash
         run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y python3-pil
-          python3 - <<'PY'
-          from PIL import Image
-          from pathlib import Path
-
-          assets = Path('assets')
-          source = Image.open(assets / 'icon-only.png').convert('RGBA')
-          source = source.resize((1024, 1024), Image.Resampling.LANCZOS)
-
-          foreground = Image.new('RGBA', (1024, 1024), (0, 0, 0, 0))
-          artwork = source.resize((680, 680), Image.Resampling.LANCZOS)
-          foreground.alpha_composite(
-              artwork, ((1024 - 680) // 2, (1024 - 680) // 2)
-          )
-          foreground.save(assets / 'icon-foreground.png')
-
-          background = Image.new('RGB', (1024, 1024), '#061A46')
-          background.save(assets / 'icon-background.png')
-
-          splash = Image.new('RGB', (2732, 2732), '#061A46')
-          splash_art = source.convert('RGB').resize(
-              (2100, 2100), Image.Resampling.LANCZOS
-          )
-          splash.paste(
-              splash_art, ((2732 - 2100) // 2, (2732 - 2100) // 2)
-          )
-          splash.save(assets / 'splash.png')
-          PY
-
-      - name: Prepare game web assets
-        working-directory: project
-        shell: bash
-        run: |
-          set -euo pipefail
+          set -e
           mkdir -p www/icons
           cp index.html www/index.html
           cp manifest.webmanifest www/manifest.webmanifest
           cp sw.js www/sw.js
           cp icons/* www/icons/
-          curl --fail --location --retry 3 \
-            https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js \
-            -o www/three.min.js
-          test -s www/three.min.js
 
       - name: Install dependencies
         working-directory: project
@@ -108,7 +68,7 @@ jobs:
         working-directory: project
         run: npx cap sync android
 
-      - name: Generate Android icons and splash
+      - name: Generate HDP app icons
         working-directory: project
         run: npx capacitor-assets generate --android
 
