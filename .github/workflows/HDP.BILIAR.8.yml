@@ -1,10 +1,11 @@
-name: HDP.BILIAR.8 APK
+
+name: HDP BALAP 3D APK
 
 on:
   workflow_dispatch:
   push:
     paths:
-      - 'HDP.BILIAR.8.zip'
+      - 'HDP_BALAP_3D_APK.zip'
       - '.github/workflows/HDP.BILIAR.8.yml'
 
 permissions:
@@ -35,11 +36,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
-          test -f HDP.BILIAR.8.zip
+          test -f HDP_BALAP_3D_APK.zip
           mkdir -p project
-          unzip -oq HDP.BILIAR.8.zip -d project
-
+          unzip -oq HDP_BALAP_3D_APK.zip -d project
           test -f project/index.html
           test -f project/package.json
           test -f project/capacitor.config.json
@@ -53,17 +52,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
           mkdir -p www/icons
           cp index.html www/index.html
           cp manifest.webmanifest www/manifest.webmanifest
           cp sw.js www/sw.js
           cp icons/* www/icons/
-
           curl --fail --location --retry 3 \
             https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js \
             -o www/three.min.js
-
           test -s www/three.min.js
 
       - name: Install dependencies
