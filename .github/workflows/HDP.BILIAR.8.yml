@@ -43,11 +43,45 @@ jobs:
           test -f project/package.json
           test -f project/capacitor.config.json
           test -f project/assets/icon-only.png
-          test -f project/assets/splash.png
           test -f project/manifest.webmanifest
           test -f project/sw.js
 
-      - name: Prepare game assets
+      - name: Prepare official HDP racing icon layers
+        working-directory: project
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y python3-pil
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+
+          assets = Path('assets')
+          source = Image.open(assets / 'icon-only.png').convert('RGBA')
+          source = source.resize((1024, 1024), Image.Resampling.LANCZOS)
+
+          foreground = Image.new('RGBA', (1024, 1024), (0, 0, 0, 0))
+          artwork = source.resize((680, 680), Image.Resampling.LANCZOS)
+          foreground.alpha_composite(
+              artwork, ((1024 - 680) // 2, (1024 - 680) // 2)
+          )
+          foreground.save(assets / 'icon-foreground.png')
+
+          background = Image.new('RGB', (1024, 1024), '#061A46')
+          background.save(assets / 'icon-background.png')
+
+          splash = Image.new('RGB', (2732, 2732), '#061A46')
+          splash_art = source.convert('RGB').resize(
+              (2100, 2100), Image.Resampling.LANCZOS
+          )
+          splash.paste(
+              splash_art, ((2732 - 2100) // 2, (2732 - 2100) // 2)
+          )
+          splash.save(assets / 'splash.png')
+          PY
+
+      - name: Prepare game web assets
         working-directory: project
         shell: bash
         run: |
@@ -74,7 +108,7 @@ jobs:
         working-directory: project
         run: npx cap sync android
 
-      - name: Generate app icons
+      - name: Generate Android icons and splash
         working-directory: project
         run: npx capacitor-assets generate --android
 
