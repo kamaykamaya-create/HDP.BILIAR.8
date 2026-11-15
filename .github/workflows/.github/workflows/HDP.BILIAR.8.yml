@@ -1,0 +1,75 @@
+
+name: HDP.BILIAR.8 APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'HDP.BILIAR.8.zip'
+      - '.github/workflows/HDP.BILIAR.8.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract project ZIP
+        run: |
+          mkdir -p project
+          unzip -o HDP.BILIAR.8.zip -d project
+          test -f project/index.html
+          test -f project/capacitor.config.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Prepare web assets
+        working-directory: project
+        run: |
+          mkdir -p www/icons
+          cp index.html www/index.html
+          cp manifest.webmanifest www/manifest.webmanifest
+          cp sw.js www/sw.js
+          cp icons/* www/icons/
+          curl -fL --retry 3 https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js -o www/three.min.js
+
+      - name: Install dependencies
+        working-directory: project
+        run: npm install
+
+      - name: Create Android project
+        working-directory: project
+        run: npx cap add android
+
+      - name: Sync Android
+        working-directory: project
+        run: npx cap sync android
+
+      - name: Generate app icons
+        working-directory: project
+        run: npx capacitor-assets generate --android
+
+      - name: Build APK
+        working-directory: project/android
+        run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: HDP.BILIAR.8-APK
+          path: project/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
