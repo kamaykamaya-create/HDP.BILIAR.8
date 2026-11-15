@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>HDP Biliar 8-Ball</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#3fbf7f;--gold2:#8fe3b5;--ink:#eef1f5;--mute:#9aa3ae;--glass:rgba(14,16,20,.62);--line:rgba(255,255,255,.09)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#07080a;color:var(--ink);font-family:Inter,system-ui,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.hidden{display:none!important}
+button{font-family:inherit;color:inherit;border:0;background:none;cursor:pointer}
+.glass{background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line)}
+/* HUD */
+#hud{position:fixed;inset:0;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#hud>*{pointer-events:auto}
+.icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:18px}
+.icon.off svg{opacity:.3}
+.icon svg{width:20px;height:20px;stroke:#e9ecf1;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#btnMenu{position:absolute;top:calc(10px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left))}
+
+.viewbtn{height:42px;padding:0 14px;border-radius:12px;font:600 13px Inter;color:var(--gold2)}
+#tools{position:absolute;top:calc(10px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));display:flex;gap:8px}
+#players{position:absolute;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;align-items:stretch;gap:6px;border-radius:14px;padding:5px}
+.pcard{display:flex;align-items:center;gap:8px;padding:5px 10px 5px 6px;border-radius:10px;min-width:150px;transition:.3s;border:1px solid transparent}
+.pcard.right{flex-direction:row-reverse;padding:5px 6px 5px 10px;text-align:right}
+.pcard.active{background:linear-gradient(180deg,rgba(63,191,127,.22),rgba(63,191,127,.06));border-color:rgba(63,191,127,.55);box-shadow:0 0 18px rgba(63,191,127,.18)}
+.avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:700 16px 'Barlow Condensed';background:linear-gradient(145deg,#2b3038,#16191e);border:1px solid rgba(255,255,255,.14);flex:none}
+.pcard.active .avatar{border-color:var(--gold);color:var(--gold2)}
+.pname{font:600 15px 'Barlow Condensed';letter-spacing:.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+.pcard>div:last-child{min-width:0}
+#matchInfo{min-width:54px;flex:none}
+.pgroup{font-size:10px;color:var(--mute);letter-spacing:.3px;margin-top:1px}
+.tray{display:flex;gap:2px;margin-top:3px;min-height:13px}
+.pcard.right .tray{justify-content:flex-end}
+.bi{width:17px;height:17px;border-radius:50%;position:relative;flex:none;box-shadow:inset -1px -1px 2px rgba(0,0,0,.45)}
+.bi i{position:absolute;inset:3px;border-radius:50%;background:#f4f1e8;color:#111;font:800 8px/11px Inter;font-style:normal;text-align:center;letter-spacing:-.3px}
+.bi.gone{background:#0a0a0a!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.bi.gone i{background:#2b2b2b;color:#9a9a9a}
+.bi.next{box-shadow:0 0 0 2px #fff,0 0 8px rgba(255,255,255,.8)}
+.tray{gap:1px!important;flex-wrap:nowrap}
+.vs{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 8px;color:var(--gold);text-align:center}
+.vs small{font:600 10px 'Barlow Condensed';letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap}
+.vs b{font:700 18px 'Barlow Condensed';color:#fff;letter-spacing:1px}
+.sw{width:26px;height:26px;border-radius:50%!important;padding:0!important;border:2px solid rgba(255,255,255,.15)!important}
+.sw.on{border-color:#fff!important;box-shadow:0 0 0 2px rgba(63,191,127,.6)}
+#actCol{position:absolute;right:calc(12px + env(safe-area-inset-right));bottom:calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;align-items:stretch}
+#btnView{min-width:84px}
+#btnShoot{width:84px;height:72px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+#btnShoot svg{width:34px;height:34px}#btnShoot b{font:800 14px 'Barlow Condensed';letter-spacing:2px;color:var(--gold2)}
+#btnShoot.on{background:rgba(63,191,127,.3);border-color:var(--gold)}
+#powerWrap.closed{display:none}
+#spinWrap{display:flex;flex-direction:column;align-items:center;gap:3px;margin-bottom:4px}
+#spinBall{width:58px;height:58px;border-radius:50%;position:relative;background:radial-gradient(circle at 36% 30%,#fff,#ece7da 45%,#a9a497 100%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2),0 3px 10px rgba(0,0,0,.5);touch-action:none}
+#spinBall:before,#spinBall:after{content:"";position:absolute;background:rgba(0,0,0,.14)}
+#spinBall:before{left:50%;top:7px;bottom:7px;width:1px}#spinBall:after{top:50%;left:7px;right:7px;height:1px}
+#spinDot{position:absolute;width:13px;height:13px;border-radius:50%;background:#d32f2f;box-shadow:0 0 0 2px rgba(255,255,255,.8);left:50%;top:50%;transform:translate(-50%,-50%)}
+#spinWrap span{font-size:9px;color:var(--mute);letter-spacing:.6px;text-transform:uppercase;text-shadow:0 1px 2px #000}
+/* power */
+#powerWrap{touch-action:none;padding:6px;position:absolute;right:calc(10px + env(safe-area-inset-right));bottom:calc(178px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:8px}
+#powerTrack{width:46px;height:min(34vh,220px);border-radius:27px;position:relative;overflow:hidden;touch-action:none}
+#powerFill{position:absolute;left:0;right:0;top:0;height:0;background:linear-gradient(180deg,#8fe3b5,#2fa866)}
+#powerCue{position:absolute;left:50%;top:10px;width:12px;height:calc(100% - 20px);transform:translateX(-50%);border-radius:6px;background:linear-gradient(180deg,#f3f6fa 0 3%,#4a77b0 3% 5%,#f6efe0 5% 8%,#e6c993 8% 56%,#c9b27a 56% 58%,#2a1a12 58% 76%,#121212 76% 94%,#2a1a12 94%);box-shadow:0 2px 8px rgba(0,0,0,.6)}
+#powerLabel{font:700 15px 'Barlow Condensed';color:var(--gold2);letter-spacing:1px}
+#powerHint{font-size:9px;color:var(--mute);text-align:center;max-width:70px;line-height:1.3}
+/* fine aim */
+#fine{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom));left:calc(12px + env(safe-area-inset-left));display:flex;gap:10px;border-radius:16px;padding:6px;align-items:center}
+#fine button{width:64px;height:48px;border-radius:11px;background:rgba(255,255,255,.06);font:600 20px Inter}
+#fine button:active{background:rgba(63,191,127,.3)}
+#fine span{font-size:10px;color:var(--mute);letter-spacing:.5px;padding:0 4px}
+/* toast & hint */
+#toast{position:absolute;top:calc(74px + env(safe-area-inset-top));left:50%;transform:translate(-50%,-8px);padding:9px 18px;border-radius:12px;font:600 14px Inter;opacity:0;transition:.35s;pointer-events:none;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast.warn{border-color:rgba(255,255,255,.35);color:#fff}
+#toast.good{border-color:rgba(63,191,127,.6);color:var(--gold2)}
+#hint{position:absolute;bottom:calc(76px + env(safe-area-inset-bottom));left:calc(14px + env(safe-area-inset-left));max-width:calc(100vw - 130px);overflow:hidden;text-overflow:ellipsis;font-size:11px;color:rgba(255,255,255,.62);text-shadow:0 1px 3px #000;white-space:nowrap;pointer-events:none}
+/* overlays */
+.overlay{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at center,rgba(6,7,9,.35),rgba(6,7,9,.85));padding:16px;z-index:10;overflow:auto}
+.panel{width:min(440px,94vw);border-radius:20px;padding:22px 22px 18px;text-align:center}
+.brand{font:600 12px Inter;letter-spacing:5px;color:var(--gold);text-transform:uppercase}
+.title{font:700 46px/1 'Barlow Condensed';letter-spacing:1px;margin:8px 0 2px;background:linear-gradient(180deg,#fff,#c9ced6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{font-size:12px;color:var(--mute);letter-spacing:.5px}
+.rule{height:1px;background:linear-gradient(90deg,transparent,rgba(63,191,127,.6),transparent);margin:16px 0}
+.btn{display:block;width:100%;padding:13px 16px;border-radius:13px;font:600 15px Inter;margin-top:10px;transition:.15s}
+.btn.primary{background:linear-gradient(180deg,#4fd08f,#249158);color:#06170e;box-shadow:0 6px 20px rgba(63,191,127,.25)}
+.btn.ghost{background:rgba(255,255,255,.06);border:1px solid var(--line)}
+.btn:active{transform:scale(.98)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;text-align:left}
+.row label{font-size:12px;color:var(--mute)}
+.seg{display:flex;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.seg button{padding:6px 10px;border-radius:7px;font:600 12px Inter;color:#c4cad2}
+.seg button.on{background:rgba(63,191,127,.22);color:var(--gold2)}
+.names{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.names label{font-size:10px;color:var(--mute);text-align:left;display:flex;flex-direction:column;gap:4px}
+.names input{width:100%;padding:9px 8px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.07);color:#fff;font:600 13px Inter;user-select:text;-webkit-user-select:text}
+.names input:focus{outline:none;border-color:var(--gold)}
+.legal{font-size:10px;color:var(--mute);line-height:1.5;margin-top:14px;padding-top:10px;border-top:1px solid var(--line);text-align:center}
+.legal b{color:var(--gold2)}
+#btnInstall{margin-top:10px}
+.musicBox{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-top:8px;text-align:left}
+.musicInfo{font-size:11px;color:var(--gold2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}.mrow label{font-size:11px;color:var(--mute)}
+.mrow input[type=range]{flex:1;accent-color:#3fbf7f}
+.mbtn{padding:7px 10px;border-radius:9px;background:rgba(255,255,255,.07);border:1px solid var(--line);font:600 11px Inter;color:#e6e9ee;cursor:pointer}
+.how{font-size:11px;color:var(--mute);line-height:1.6;margin-top:14px}
+.big{font:700 40px/1.05 'Barlow Condensed';margin:6px 0}
+#rotateHint{display:none;position:fixed;bottom:calc(10px + env(safe-area-inset-bottom));left:0;right:0;text-align:center;font-size:11px;color:var(--mute);z-index:11;pointer-events:none}
+@media (orientation:landscape){#rotateHint{display:none}}
+@media (max-height:430px){.title{font-size:36px}.panel{padding:16px 18px 14px}.btn{padding:10px;margin-top:8px}.rule{margin:10px 0}.how{display:none}.row{margin-top:8px}}
+@media (orientation:portrait){#players{top:calc(60px + env(safe-area-inset-top));width:calc(100vw - 20px);max-width:none!important}.pcard{flex:1 1 0}.pname{max-width:80px}#toast{top:calc(124px + env(safe-area-inset-top))}.pcard{min-width:0}.pgroup{display:none}#players{max-width:76vw}.vs{padding:0 3px;font-size:11px}#powerTrack{height:40vh}}
+</style>
+
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#07130d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HDP Biliar">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="hud" class="hidden">
+  <button id="btnMenu" class="icon glass" aria-label="Menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <div id="players" class="glass">
+    <div class="pcard" id="p0"><div class="avatar">1</div><div><div class="pname">Pemain 1</div><div class="pgroup">Meja terbuka</div><div class="tray"></div></div></div>
+    <div class="vs" id="matchInfo"><small>8-Ball</small><b>0 – 0</b></div>
+    <div class="pcard right" id="p1"><div class="avatar">2</div><div><div class="pname">Pemain 2</div><div class="pgroup">Meja terbuka</div><div class="tray"></div></div></div>
+  </div>
+  <div id="tools">
+    <button id="btnMusic" class="icon glass" aria-label="Musik"><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
+    <button id="btnSound" class="icon glass" aria-label="Suara"><svg viewBox="0 0 24 24"><path d="M5 9v6h4l5 4V5L9 9H5z"/><path id="sndWave" d="M17 9a4 4 0 0 1 0 6"/></svg></button>
+    <button id="btnFs" class="icon glass" aria-label="Layar penuh"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+  </div>
+  <div id="powerWrap" class="closed">
+    <div id="spinWrap"><div id="spinBall"><div id="spinDot"></div></div><span>Titik pukul</span></div>
+    <div id="powerLabel">0%</div>
+    <div id="powerTrack" class="glass"><div id="powerFill"></div><div id="powerCue"></div></div>
+    <div id="powerHint">Tarik ke bawah, lepas untuk memukul</div>
+  </div>
+  <div id="actCol">
+    <button id="btnView" class="glass viewbtn">Lihat Meja</button>
+    <button id="btnShoot" class="glass"><svg viewBox="0 0 40 40"><line x1="6" y1="34" x2="30" y2="10" stroke="#e8cf98" stroke-width="4" stroke-linecap="round"/><line x1="30" y1="10" x2="33" y2="7" stroke="#4a77b0" stroke-width="4" stroke-linecap="round"/><circle cx="34" cy="31" r="4.5" fill="#fff"/></svg><b>PUKUL</b></button>
+  </div>
+  <div id="fine" class="glass"><button id="fineL">‹</button><span>BIDIK HALUS</span><button id="fineR">›</button></div>
+  <div id="toast" class="glass"></div>
+  <div id="hint"></div>
+</div>
+
+<div id="menu" class="overlay">
+  <div class="panel glass">
+    <div class="brand">HDP · Hadiansyah DigitalPreneur</div>
+    <div class="title">BILIAR 8-BALL</div>
+    <div class="sub">Edisi Profesional · Hiburan santai untuk Bapak/Ibu Guru</div>
+    <div class="rule"></div>
+    <div class="names">
+      <label>Nama Anda<input id="nP1" maxlength="12" placeholder="Anda"></label>
+      <label>Nama Pemain 2<input id="nP2" maxlength="12" placeholder="Pemain 2"></label>
+      <label>Nama Komputer<input id="nAI" maxlength="12" placeholder="Komputer"></label>
+    </div>
+    <div class="row"><label>Level lawan (Main Single)</label><div class="seg" data-key="diff"><button data-v="easy">Santai</button><button data-v="medium">Sedang</button><button data-v="hard">Pro</button></div></div>
+    <button class="btn primary" id="btnVsAI">Main Single</button>
+    <button class="btn ghost" id="btnTour">Turnamen · 3 Babak</button>
+    <button class="btn ghost" id="btnPractice">🎯 Latihan (Bebas)</button>
+    <button class="btn ghost" id="btnVs2">2 Pemain (1 HP bergantian)</button>
+    <div class="row"><label>Format pertandingan</label><div class="seg" data-key="race"><button data-v="1">1 Rack</button><button data-v="2">Race to 2</button><button data-v="3">Race to 3</button></div></div>
+    <div class="row"><label>Warna meja</label><div class="seg" data-key="cloth"><button class="sw" data-v="green" style="background:#0b5530" aria-label="Hijau"></button><button class="sw" data-v="blue" style="background:#14467e" aria-label="Biru"></button><button class="sw" data-v="red" style="background:#7a1420" aria-label="Merah"></button><button class="sw" data-v="purple" style="background:#4a2370" aria-label="Ungu"></button><button class="sw" data-v="pink" style="background:#b04a7c" aria-label="Pink"></button></div></div>
+    <div class="row"><label>Musik latar</label><div class="seg" data-key="music"><button data-v="off">Mati</button><button data-v="lounge">Lounge</button><button data-v="hp">Lagu HP</button></div></div>
+    <div class="musicBox"><div class="musicInfo"></div>
+      <div class="hpOnly mrow"><label class="mbtn">🎵 Pilih lagu dari HP<input type="file" class="songInput" accept="audio/*,.mp3" multiple hidden></label><button class="mbtn btnNext">⏭ Lagu berikut</button><button class="mbtn btnClear">Hapus daftar</button></div>
+      <div class="mrow"><label>Volume musik</label><input type="range" class="volRange" min="0" max="1" step="0.05"></div></div>
+    <div class="row"><label>Grafis</label><div class="seg" data-key="quality"><button data-v="high">Tinggi</button><button data-v="low">Hemat</button></div></div>
+    <div class="row"><label>Garis bantu bidik</label><div class="seg" data-key="guide"><button data-v="on">Aktif</button><button data-v="off">Mati</button></div></div>
+    <div class="how">Geser layar untuk membidik · Ketuk bola untuk bidik langsung<br>Tekan PUKUL, tarik tongkat ke bawah lalu lepas untuk memukul</div>
+    <button class="btn ghost hidden" id="btnInstall">📲 Pasang Aplikasi di HP</button>
+    <div class="legal">Game ini adalah aset <b>HDP – Hadiansyah DigitalPreneur</b>.<br>Dilarang memperjualbelikan atau membagikan tanpa izin.</div>
+  </div>
+</div>
+
+<div id="pause" class="overlay hidden">
+  <div class="panel glass">
+    <div class="brand">Jeda</div>
+    <div class="big">Permainan Dijeda</div>
+    <div class="rule"></div>
+    <div class="row"><label>Warna meja</label><div class="seg" data-key="cloth"><button class="sw" data-v="green" style="background:#0b5530" aria-label="Hijau"></button><button class="sw" data-v="blue" style="background:#14467e" aria-label="Biru"></button><button class="sw" data-v="red" style="background:#7a1420" aria-label="Merah"></button><button class="sw" data-v="purple" style="background:#4a2370" aria-label="Ungu"></button><button class="sw" data-v="pink" style="background:#b04a7c" aria-label="Pink"></button></div></div>
+    <div class="row"><label>Garis bantu bidik</label><div class="seg" data-key="guide"><button data-v="on">Aktif</button><button data-v="off">Mati</button></div></div>
+    <div class="row"><label>Musik latar</label><div class="seg" data-key="music"><button data-v="off">Mati</button><button data-v="lounge">Lounge</button><button data-v="hp">Lagu HP</button></div></div>
+    <div class="musicBox"><div class="musicInfo"></div>
+      <div class="hpOnly mrow"><label class="mbtn">🎵 Pilih lagu dari HP<input type="file" class="songInput" accept="audio/*,.mp3" multiple hidden></label><button class="mbtn btnNext">⏭ Lagu berikut</button><button class="mbtn btnClear">Hapus daftar</button></div>
+      <div class="mrow"><label>Volume musik</label><input type="range" class="volRange" min="0" max="1" step="0.05"></div></div>
+    <button class="btn primary" id="btnResume">Lanjutkan</button>
+    <button class="btn ghost" id="btnRestart">Ulangi Pertandingan</button>
+    <button class="btn ghost" id="btnHome">Menu Utama</button>
+    <div class="legal">Game ini adalah aset <b>HDP – Hadiansyah DigitalPreneur</b>.<br>Dilarang memperjualbelikan atau membagikan tanpa izin.</div>
+  </div>
+</div>
+
+<div id="over" class="overlay hidden">
+  <div class="panel glass">
+    <div class="brand" id="overBrand">Pertandingan Selesai</div>
+    <div class="big" id="overTitle">Anda Menang!</div>
+    <div class="sub" id="overReason"></div>
+    <div class="rule"></div>
+    <button class="btn primary" id="btnAgain">Main Lagi</button>
+    <button class="btn ghost" id="btnHome2">Menu Utama</button>
+  </div>
+</div>
+<div id="rotateHint">Miringkan HP (landscape) untuk pengalaman terbaik</div>
+
+<script src="three.min.js"></script>
+<script>if (!window.THREE) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');</script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+
+/* ============ KONSTANTA MEJA (meter, meja 9 kaki) ============ */
+const L = 2.54, W = 1.27, X = L / 2, Z = W / 2, R = 0.028575, D2 = 4 * R * R;
+const CW = 0.045, RW = 0.115, CG = 0.085, SG = 0.065;
+const CUSH_H = 0.040, RAIL_H = 0.050;
+const E_BALL = 0.94, E_CUSH = 0.72, ROLL_A = 0.22, ROLL_K = 0.24;
+const FOOT_X = X / 2, HEAD_X = -X / 2;
+const POCKETS = [
+  { x: -X - 0.012, z: -Z - 0.012, r: 0.062, pr: 0.056 }, { x: 0, z: -Z - 0.028, r: 0.064, pr: 0.052 }, { x: X + 0.012, z: -Z - 0.012, r: 0.062, pr: 0.056 },
+  { x: -X - 0.012, z: Z + 0.012, r: 0.062, pr: 0.056 }, { x: 0, z: Z + 0.028, r: 0.064, pr: 0.052 }, { x: X + 0.012, z: Z + 0.012, r: 0.062, pr: 0.056 }
+];
+const JAWS = [[X - CG, Z], [-(X - CG), Z], [X - CG, -Z], [-(X - CG), -Z], [SG, Z], [-SG, Z], [SG, -Z], [-SG, -Z], [X, Z - CG], [X, -(Z - CG)], [-X, Z - CG], [-X, -(Z - CG)]];
+const BALL_COL = { 1: '#f2b705', 2: '#1b3fa6', 3: '#c8102e', 4: '#4b2a83', 5: '#e8650f', 6: '#0d6b3c', 7: '#7d1d1d', 8: '#111111' };
+const colOf = n => BALL_COL[n > 8 ? n - 8 : n];
+const CLOTHS = { green: ['#0b5530', '#084526'], blue: ['#14467e', '#0f3866'], red: ['#7a1420', '#621019'], purple: ['#4a2370', '#3b1b5a'], pink: ['#b04a7c', '#933c66'] };
+
+/* ============ PENGATURAN ============ */
+const lowEnd = (navigator.hardwareConcurrency || 4) <= 4;
+const settings = { music: 'lounge', musicVol: .5, names: { p1: 'Anda', p2: 'Pemain 2', ai: 'Komputer' }, diff: 'medium', cloth: 'green', race: '1', quality: 'high', guide: 'on', sound: true };
+try { Object.assign(settings, JSON.parse(localStorage.getItem('hdp_biliar_set2') || '{}')); } catch (e) {}
+const saveSettings = () => { try { localStorage.setItem('hdp_biliar_set2', JSON.stringify(settings)); } catch (e) {} };
+
+/* ============ RENDERER & SCENE ============ */
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.shadowMap.enabled = false;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#08090b');
+const camera = new THREE.PerspectiveCamera(50, 1, 0.02, 40);
+camera.position.set(2.6, 1.6, 2.2);
+const maxAniso = renderer.capabilities.getMaxAnisotropy();
+
+function applyQuality() {
+  const hi = settings.quality === 'high';
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, hi ? 2.5 : 1.75));
+  onResize();
+}
+
+/* ---------- Environment map (pantulan lampu di bola) ---------- */
+function buildEnvironment() {
+  const env = new THREE.Scene();
+  const room = new THREE.Mesh(new THREE.BoxGeometry(12, 6, 10), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.018, 0.017, 0.016), side: THREE.BackSide }));
+  room.position.y = 2; env.add(room);
+  const lampMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(6, 5.6, 5) });
+  for (let i = -1; i <= 1; i++) {
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.32), lampMat);
+    p.rotation.x = Math.PI / 2; p.position.set(i * 0.85, 1.5, 0); env.add(p);
+  }
+  const fill = new THREE.Mesh(new THREE.PlaneGeometry(5, 1.2), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.22, 0.2, 0.18) }));
+  fill.position.set(0, 1.6, -4.9); env.add(fill);
+  const fill2 = fill.clone(); fill2.position.set(0, 1.6, 4.9); fill2.rotation.y = Math.PI; env.add(fill2);
+  const pm = new THREE.PMREMGenerator(renderer);
+  scene.environment = pm.fromScene(env, 0.02).texture;
+  pm.dispose();
+}
+
+/* ---------- Tekstur prosedural ---------- */
+function canvasTex(w, h, draw, srgb = true) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  if (srgb) t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = maxAniso; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+function rand(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+const clothTex = canvasTex(512, 512, (g, w, h) => {
+  const img = g.createImageData(w, h); const r = rand(7);
+  for (let i = 0; i < w * h; i++) { const v = 222 + r() * 33; img.data[i * 4] = v; img.data[i * 4 + 1] = v; img.data[i * 4 + 2] = v; img.data[i * 4 + 3] = 255; }
+  g.putImageData(img, 0, 0);
+  g.globalAlpha = 0.05; for (let i = 0; i < 1600; i++) { g.fillStyle = r() > .5 ? '#fff' : '#000'; g.fillRect(r() * w, r() * h, 1 + r() * 3, 1); }
+});
+clothTex.repeat.set(9, 9);
+const woodTex = canvasTex(1024, 256, (g, w, h) => {
+  const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#3d2617'); gr.addColorStop(.5, '#2b1a0f'); gr.addColorStop(1, '#3a2416');
+  g.fillStyle = gr; g.fillRect(0, 0, w, h);
+});
+woodTex.repeat.set(0.9, 2.2);
+const floorTex = canvasTex(512, 512, (g, w, h) => {
+  g.fillStyle = '#1a1411'; g.fillRect(0, 0, w, h); const r = rand(11);
+});
+floorTex.repeat.set(10, 10);
+
+function ballTexture(n) {
+  return canvasTex(1024, 512, (g, w, h) => {
+    const ivory = '#f5f1e6';
+    if (n === 0) { g.fillStyle = ivory; g.fillRect(0, 0, w, h); return; }
+    if (n <= 8) { g.fillStyle = colOf(n); g.fillRect(0, 0, w, h); }
+    else { g.fillStyle = ivory; g.fillRect(0, 0, w, h); g.fillStyle = colOf(n); g.fillRect(0, h * .27, w, h * .46); }
+    for (const u of [.25, .75]) {
+      const cx = u * w, cy = h / 2;
+      g.fillStyle = ivory; g.beginPath(); g.arc(cx, cy, 104, 0, Math.PI * 2); g.fill(); g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 4; g.stroke();
+      g.fillStyle = '#121212'; g.font = '900 136px Arial, Helvetica, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(String(n), cx, cy + 8);
+      if (n === 6 || n === 9) g.fillRect(cx - 30, cy + 62, 60, 9);
+    }
+  });
+}
+
+/* ---------- Lampu ---------- */
+scene.add(new THREE.AmbientLight('#ffffff', 0.62));
+{ const dl = new THREE.DirectionalLight('#ffffff', 0.5); dl.position.set(0, 1, 0.35); scene.add(dl); }
+const spots = [];
+
+/* ---------- Meja ---------- */
+const clothMat = new THREE.MeshBasicMaterial(), cushionMat = new THREE.MeshBasicMaterial();
+function applyCloth() { const c = CLOTHS[settings.cloth] || CLOTHS.green; clothMat.color.set(c[0]).convertSRGBToLinear(); cushionMat.color.set(c[1]).convertSRGBToLinear(); }
+applyCloth();
+const woodMat = new THREE.MeshLambertMaterial({ color: '#ffffff', map: woodTex,   });
+const blackMat = new THREE.MeshLambertMaterial({ color: '#030303' });
+const leatherMat = new THREE.MeshBasicMaterial({ color: '#050505',  side: THREE.BackSide });
+const chromeMat = new THREE.MeshLambertMaterial({ color: '#1a1a1a' });
+const pearlMat = new THREE.MeshLambertMaterial({ color: '#f3efe6' });
+
+function prism(points, y0, height, mat, opts = {}) {  // points: [x,z]
+  const sh = new THREE.Shape(points.map(p => new THREE.Vector2(p[0], -p[1])));
+  const geo = new THREE.ExtrudeGeometry(sh, Object.assign({ depth: height, bevelEnabled: false }, opts));
+  geo.rotateX(-Math.PI / 2); geo.translate(0, y0, 0);
+  const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m;
+}
+
+function buildTable() {
+  const T = new THREE.Group();
+  const OX = X + CW + RW, OZ = Z + CW + RW;
+  // bed kain dengan lubang kantong
+  const bed = new THREE.Shape([new THREE.Vector2(-OX + .01, -OZ + .01), new THREE.Vector2(OX - .01, -OZ + .01), new THREE.Vector2(OX - .01, OZ - .01), new THREE.Vector2(-OX + .01, OZ - .01)]);
+  POCKETS.forEach(p => { const h = new THREE.Path(); h.absarc(p.x, -p.z, p.r, 0, Math.PI * 2, true); bed.holes.push(h); });
+  const bedGeo = new THREE.ShapeGeometry(bed, 48); bedGeo.rotateX(-Math.PI / 2);
+  const bedMesh = new THREE.Mesh(bedGeo, clothMat); bedMesh.receiveShadow = true; T.add(bedMesh);
+  // titik kepala & kaki
+  const spotMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .55 });
+
+  // bantalan (cushion) — ujung miring di kantong sudut
+  const o = CW, y0 = 0, hgt = CUSH_H;
+  const cush = (pts) => T.add(prism(pts, y0, hgt, cushionMat));
+  [1, -1].forEach(sz => {
+    const zi = sz * Z, zo = sz * (Z + o);
+    cush([[-X + CG, zi], [-SG, zi], [-SG + .006, zo], [-X + CG - o, zo]]);
+    cush([[SG, zi], [X - CG, zi], [X - CG + o, zo], [SG - .006, zo]]);
+  });
+  [1, -1].forEach(sx => {
+    const xi = sx * X, xo = sx * (X + o);
+    cush([[xi, -Z + CG], [xi, Z - CG], [xo, Z - CG + o], [xo, -Z + CG - o]]);
+  });
+
+  // rel kayu: bingkai dengan lekukan kantong (ekstrusi ber-bevel)
+  const pr = POCKETS.map(p => ({ x: p.x, z: p.z, r: p.r + .009 }));
+  const ax = X + CW, az = Z + CW, pts = [];
+  for (let i = 0; i < 480; i++) {
+    const a = i / 480 * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+    let t = Math.min(ax / Math.abs(c || 1e-9), az / Math.abs(s || 1e-9));
+    for (const p of pr) { const b = c * p.x + s * p.z, disc = b * b - (p.x * p.x + p.z * p.z - p.r * p.r); if (disc >= 0) t = Math.max(t, b + Math.sqrt(disc)); }
+    pts.push(new THREE.Vector2(c * t, -s * t));
+  }
+  const frame = new THREE.Shape([new THREE.Vector2(-OX, -OZ), new THREE.Vector2(OX, -OZ), new THREE.Vector2(OX, OZ), new THREE.Vector2(-OX, OZ)]);
+  frame.holes.push(new THREE.Path(pts));
+  const railGeo = new THREE.ExtrudeGeometry(frame, { depth: RAIL_H - .008, bevelEnabled: true, bevelThickness: .008, bevelSize: .006, bevelSegments: 2, curveSegments: 8 });
+  railGeo.rotateX(-Math.PI / 2);
+  const rail = new THREE.Mesh(railGeo, woodMat); rail.castShadow = rail.receiveShadow = true; T.add(rail);
+
+  // kantong: lapisan kulit, lubang hitam, bibir krom
+  POCKETS.forEach((p, i) => {
+    const rr = p.r + .009;
+    const liner = new THREE.Mesh(new THREE.CylinderGeometry(rr, rr, RAIL_H + .002, 48, 1, true), leatherMat); liner.position.set(p.x, RAIL_H / 2, p.z); T.add(liner);
+    const pit = new THREE.Mesh(new THREE.CylinderGeometry(p.r, p.r * .92, .16, 40, 1, true), new THREE.MeshLambertMaterial({ color: '#050505', side: THREE.BackSide })); pit.position.set(p.x, -.08, p.z); T.add(pit);
+    const bottom = new THREE.Mesh(new THREE.CircleGeometry(p.r, 32), blackMat); bottom.rotation.x = -Math.PI / 2; bottom.position.set(p.x, -.15, p.z); T.add(bottom);
+  });
+
+  // diamond (penanda) mutiara
+  const dg = new THREE.CylinderGeometry(.0065, .0065, .002, 4); dg.rotateY(Math.PI / 4);
+  const rc = CW + RW * .5;
+  for (const k of [-3, -2, -1, 1, 2, 3]) for (const sz of [1, -1]) { const d = new THREE.Mesh(dg, pearlMat); d.position.set(k * L / 8, RAIL_H + .0005, sz * (Z + rc)); T.add(d); }
+  for (const k of [-1, 0, 1]) for (const sx of [1, -1]) { const d = new THREE.Mesh(dg, pearlMat); d.position.set(sx * (X + rc), RAIL_H + .0005, k * W / 4); T.add(d); }
+
+  // badan meja (apron), kaki, lantai
+  const apron = new THREE.Mesh(new THREE.BoxGeometry(OX * 2 - .03, .17, OZ * 2 - .03), woodMat); apron.position.y = -.09; apron.castShadow = apron.receiveShadow = true; T.add(apron);
+  const trim = new THREE.Mesh(new THREE.BoxGeometry(OX * 2 - .01, .012, OZ * 2 - .01), chromeMat); trim.position.y = -.014; T.add(trim);
+  const legGeo = new THREE.CylinderGeometry(.06, .075, .6, 20);
+  for (const lx of [-1, 0, 1]) for (const lz of [-1, 1]) { const lg = new THREE.Mesh(legGeo, woodMat); lg.position.set(lx * (OX - .16), -.475, lz * (OZ - .14)); lg.castShadow = true; T.add(lg); }
+  scene.add(T);
+}
+
+/* ---------- Ruangan: Biliar & Kafe ---------- */
+function mergeG(list) {
+  const parts = list.map(g => g.index ? g.toNonIndexed() : g);
+  let n = 0; parts.forEach(g => n += g.attributes.position.count);
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), uv = new Float32Array(n * 2); let o = 0;
+  parts.forEach(g => { pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); if (g.attributes.uv) uv.set(g.attributes.uv.array, o * 2); o += g.attributes.position.count; });
+  const m = new THREE.BufferGeometry();
+  m.setAttribute('position', new THREE.BufferAttribute(pos, 3)); m.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); m.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  return m;
+}
+const roomLamps = new THREE.Group();
+function buildRoom() {
+  const FY = -.78, bins = {}, R = new THREE.Group();
+  const put = (col, geo) => (bins[col] = bins[col] || []).push(geo);
+  const box = (col, w, h, d, x, y, z, ry = 0) => put(col, new THREE.BoxGeometry(w, h, d).rotateY(ry).translate(x, FY + y, z));
+  const cyl = (col, r1, r2, h, x, y, z, seg = 16) => put(col, new THREE.CylinderGeometry(r1, r2, h, seg).translate(x, FY + y, z));
+  const sph = (col, r, x, y, z) => put(col, new THREE.SphereGeometry(r, 14, 10).translate(x, FY + y, z));
+  const WX = 5.3, WZ = 4.3, WH = 2.9;
+  // lantai kayu polos + karpet di bawah meja
+  box('#5b3d28', WX * 2, .02, WZ * 2, 0, -.01, 0);
+  box('#2c3330', 4.6, .012, 3.1, 0, .006, 0);
+  // dinding: bagian bawah panel kayu, atas krem
+  for (const [w, x, z, ry] of [[WX * 2, 0, -WZ, 0], [WX * 2, 0, WZ, 0], [WZ * 2, -WX, 0, Math.PI / 2], [WZ * 2, WX, 0, Math.PI / 2]]) {
+    box('#d8c7a8', w, WH, .1, x, WH / 2, z, ry);
+    box('#4a2f1e', w, 1.0, .12, x, .5, z, ry);
+    box('#3a2416', w, .06, .14, x, 1.02, z, ry);
+  }
+  // ---- meja bar kopi (dinding belakang) ----
+  box('#4a2f1e', 3.4, 1.0, .6, -.6, .5, -WZ + .75);
+  box('#2a1b12', 3.5, .06, .7, -.6, 1.03, -WZ + .75);
+  for (let i = 0; i < 4; i++) {          // kursi tinggi
+    const x = -1.9 + i * .87, z = -WZ + 1.45;
+    cyl('#1e1e1e', .03, .03, .72, x, .36, z, 8); cyl('#1e1e1e', .2, .2, .03, x, .02, z, 14); cyl('#7a2a1c', .19, .19, .07, x, .76, z, 16);
+  }
+  box('#3a2416', 3.4, .05, .3, -.6, 1.7, -WZ + .2); box('#3a2416', 3.4, .05, .3, -.6, 2.1, -WZ + .2);   // rak dinding
+  const JAR = ['#c98b3a', '#7a4a26', '#e0c9a0', '#a8642c', '#efe6d4'];
+  for (let i = 0; i < 12; i++) { const x = -2.1 + i * .27; cyl(JAR[i % 5], .06, .06, .2, x, 1.83, -WZ + .2, 10); if (i % 2) cyl('#f2efe8', .045, .035, .1, x + .1, 2.18, -WZ + .2, 10); }
+  box('#9aa1a8', .45, .45, .35, .6, 1.29, -WZ + .75); box('#20262c', .3, .12, .1, .6, 1.38, -WZ + .58);   // mesin kopi
+  for (let i = 0; i < 3; i++) cyl('#f4f1ea', .045, .035, .09, -1.6 + i * .5, 1.11, -WZ + .65, 10);
+  // ---- manusia (dibuat menghadap +x lokal, lalu diputar) ----
+  const person = (x, z, face, o) => {
+    const yo = o.yo || 0, seated = o.seated;
+    const T = (geo, col, px, py, pz) => put(col, geo.translate(px, py + yo, pz).rotateY(-face).translate(x, FY, z));
+    if (seated) {
+      T(new THREE.BoxGeometry(.46, .15, .34), o.pants, .12, .52, 0);
+      T(new THREE.BoxGeometry(.13, .46, .3), o.pants, .34, .26, 0);
+      T(new THREE.BoxGeometry(.25, .07, .3), '#1b1b1b', .4, .035, 0);
+    } else T(new THREE.BoxGeometry(.18, .84, .34), o.pants, 0, .42, 0);
+    const hy = seated ? .6 : .84;
+    T(new THREE.CylinderGeometry(.15, .17, .52, 16).scale(1, 1, 1.4), o.shirt, -.02, hy + .26, 0);
+    T(new THREE.CylinderGeometry(.075, .075, .44, 12).rotateX(Math.PI / 2), o.shirt, -.02, hy + .5, 0);
+    for (const sd of [-1, 1]) {
+      T(new THREE.CylinderGeometry(.056, .05, .3, 10).rotateZ(.35), o.shirt, .03, hy + .36, sd * .25);
+      T(new THREE.CylinderGeometry(.045, .04, .3, 10).rotateZ(Math.PI / 2), o.skin, .19, hy + .2, sd * .2);
+    }
+    T(new THREE.CylinderGeometry(.05, .056, .09, 10), o.skin, 0, hy + .57, 0);
+    T(new THREE.SphereGeometry(.105, 18, 14).scale(1, 1.12, .95), o.skin, .01, hy + .7, 0);
+    if (o.hijab) {
+      T(new THREE.SphereGeometry(.12, 18, 14, Math.PI * 1.25, Math.PI * 1.5).scale(1, 1.1, 1), o.hijab, -.005, hy + .7, 0);
+      T(new THREE.ConeGeometry(.21, .22, 18), o.hijab, -.01, hy + .55, 0);
+    } else {
+      T(new THREE.SphereGeometry(.112, 18, 12, 0, Math.PI * 2, 0, Math.PI * .55).scale(1, 1.05, .98), o.hair, -.02, hy + .72, 0);
+      T(new THREE.SphereGeometry(.1, 14, 10).scale(.6, .9, .95), o.hair, -.07, hy + .66, 0);
+    }
+  };
+  const PEOPLE = [
+    { shirt: '#24344f', pants: '#2a2c31', skin: '#c08d68', hair: '#1b1512' },
+    { shirt: '#e8e4dc', pants: '#3b4a62', skin: '#a9785a', hair: '#120f0d' },
+    { shirt: '#6b2f34', pants: '#26282c', skin: '#d0a07c', hair: '#2a1d14', hijab: '#b88a8f' },
+    { shirt: '#56604a', pants: '#2f3237', skin: '#b5835f', hair: '#16110e' },
+    { shirt: '#7a8794', pants: '#22252a', skin: '#c99a74', hair: '#1d1612', hijab: '#2e3f5c' },
+    { shirt: '#8a5a32', pants: '#2b2b2b', skin: '#9c6c4e', hair: '#0f0c0a' },
+    { shirt: '#3f6f6f', pants: '#2a2c31', skin: '#c99a74', hair: '#1a1410' }
+  ];
+  // barista membelakangi ruangan, menghadap rak kopi
+  person(-.9, -WZ + .38, -Math.PI / 2, Object.assign({}, PEOPLE[6], { shirt: '#2f5d4a' }));
+  // ---- kasir (sudut kanan belakang) ----
+  box('#4a2f1e', 1.4, 1.0, .6, WX - 1.2, .5, -WZ + 1.6); box('#4a2f1e', .6, 1.0, 1.0, WX - .8, .5, -WZ + .8);
+  box('#2a1b12', 1.5, .05, .7, WX - 1.2, 1.03, -WZ + 1.6);
+  box('#2b2f35', .4, .14, .3, WX - 1.2, 1.12, -WZ + 1.55); box('#16191d', .34, .22, .03, WX - 1.2, 1.3, -WZ + 1.44); box('#5fd38a', .28, .16, .01, WX - 1.2, 1.3, -WZ + 1.425);
+  person(WX - 1.2, -WZ + 1.12, 0, Object.assign({}, PEOPLE[4], { shirt: '#4a6fa5' }));   // kasir, terlihat dari samping/belakang
+  // pelanggan di kursi bar, membelakangi meja biliar
+  for (const [k, p] of [[1, 1], [3, 3]]) person(-1.9 + k * .87, -WZ + 1.48, -Math.PI / 2, Object.assign({ seated: true, yo: .3 }, PEOPLE[p]));
+  for (const k of [1, 3]) cyl('#f4f1ea', .04, .032, .1, -1.9 + k * .87, 1.11, -WZ + 1.0, 10);
+  // ---- meja santai: pelanggan duduk membelakangi / menyamping ----
+  let pi = 0;
+  const lounge = (x, z, seats) => {
+    cyl('#2a1b12', .42, .42, .04, x, .74, z, 28); cyl('#1e1e1e', .05, .05, .72, x, .36, z, 10); cyl('#1e1e1e', .25, .25, .03, x, .02, z, 18);
+    const a0 = Math.atan2(-z, -x);   // arah ke meja biliar
+    seats.forEach(([da, who]) => {
+      const a = a0 + da, cx = x + Math.cos(a) * .72, cz = z + Math.sin(a) * .72;
+      box('#5a3a24', .42, .05, .42, cx, .46, cz, -a); box('#5a3a24', .05, .5, .42, cx + Math.cos(a) * .2, .72, cz + Math.sin(a) * .2, -a);
+      for (const [dx, dz] of [[.17, .17], [-.17, .17], [.17, -.17], [-.17, -.17]]) cyl('#2a1b12', .02, .02, .44, cx + dx, .22, cz + dz, 6);
+      if (who) {
+        person(cx + Math.cos(a) * .04, cz + Math.sin(a) * .04, a + Math.PI, Object.assign({ seated: true }, PEOPLE[pi++ % PEOPLE.length]));
+        cyl('#f4f1ea', .04, .032, .09, x + Math.cos(a) * .2 + Math.sin(a) * .12, .81, z + Math.sin(a) * .2 - Math.cos(a) * .12, 10);
+      }
+    });
+    cyl('#e9e4da', .07, .05, .14, x, .83, z, 14);   // teko
+  };
+  lounge(-4.2, -.8, [[0, 1], [2.1, 1], [-2.1, 0]]);
+  lounge(-4.2, 2.3, [[0, 1], [Math.PI, 0]]);
+  lounge(3.9, 3.0, [[0, 1], [1.9, 1], [-1.9, 0]]);
+  // ---- rak stik & papan skor (dinding kanan) ----
+  box('#3a2416', .06, 1.3, 1.2, WX - .08, 1.35, .4);
+  for (let i = 0; i < 6; i++) { cyl('#d9bf8c', .012, .016, 1.4, WX - .14, 1.3, -.1 + i * .2, 8); cyl('#22140c', .017, .02, .5, WX - .14, .85, -.1 + i * .2, 8); }
+  box('#1d2622', .06, .7, 1.2, WX - .08, 2.35, -1.4); box('#e7e0cf', .07, .05, 1.0, WX - .08, 2.35, -1.4);
+  // tanaman di sudut
+  for (const [x, z] of [[-WX + .4, -WZ + .4], [-WX + .4, WZ - .4], [WX - .4, WZ - .4]]) { cyl('#6a4a32', .18, .14, .4, x, .2, z); sph('#3f7f45', .35, x, .7, z); sph('#356f3b', .28, x + .12, 1.0, z - .08); }
+  // pigura di dinding kiri
+  for (const z of [-1.2, 1.2]) { box('#2a1b12', .05, .7, .9, -WX + .07, 1.8, z); box(z < 0 ? '#3f6f6f' : '#8b5a3a', .06, .58, .78, -WX + .08, 1.8, z); }
+  for (const col in bins) { const m = new THREE.Mesh(mergeG(bins[col]), new THREE.MeshLambertMaterial({ color: col })); R.add(m); }
+  // papan nama di dinding depan
+  const sign = canvasTex(1024, 256, (g, w, h) => {
+    g.fillStyle = '#17241d'; g.fillRect(0, 0, w, h); g.strokeStyle = '#c9a45c'; g.lineWidth = 8; g.strokeRect(14, 14, w - 28, h - 28);
+    g.fillStyle = '#f1e6c8'; g.textAlign = 'center'; g.font = '800 92px "Barlow Condensed", Arial'; g.fillText('HDP BILLIARD & CAFÉ', w / 2, 120);
+    g.fillStyle = '#c9a45c'; g.font = '600 40px Inter, Arial'; g.fillText('Hadiansyah DigitalPreneur', w / 2, 192);
+  }, true);
+  const sm = new THREE.Mesh(new THREE.PlaneGeometry(2.4, .6), new THREE.MeshBasicMaterial({ map: sign }));
+  sm.position.set(0, FY + 2.15, WZ - .06); sm.rotation.y = Math.PI; R.add(sm);
+  const sm2 = sm.clone(); sm2.position.set(-.6, FY + 2.55, -WZ + .06); sm2.rotation.y = 0; sm2.scale.setScalar(.8); R.add(sm2);
+  // lampu gantung di atas meja (benda saja, tanpa efek cahaya)
+  const shade = new THREE.MeshLambertMaterial({ color: '#173a2a' }), bulb = new THREE.MeshBasicMaterial({ color: '#fff4dc' }), wire = new THREE.MeshLambertMaterial({ color: '#111' });
+  for (const x of [-.8, 0, .8]) {
+    const s = new THREE.Mesh(new THREE.CylinderGeometry(.12, .26, .2, 20, 1, true), shade); s.position.set(x, 1.45, 0); roomLamps.add(s);
+    const b = new THREE.Mesh(new THREE.CircleGeometry(.24, 20), bulb); b.rotation.x = Math.PI / 2; b.position.set(x, 1.36, 0); roomLamps.add(b);
+    const wr = new THREE.Mesh(new THREE.CylinderGeometry(.006, .006, 1.4, 5), wire); wr.position.set(x, 2.25, 0); roomLamps.add(wr);
+  }
+  R.add(roomLamps);
+  scene.add(R);
+}
+
+/* ---------- Bola ---------- */
+const ballGeo = new THREE.SphereGeometry(R, 48, 32);
+const balls = [];
+const blobTex = canvasTex(64, 64, (g, w) => { const gr = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); gr.addColorStop(0, 'rgba(0,0,0,.75)'); gr.addColorStop(.55, 'rgba(0,0,0,.35)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, w); }, false);
+const blobGeo = new THREE.PlaneGeometry(R * 2.7, R * 2.7); blobGeo.rotateX(-Math.PI / 2);
+const blobMat = new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false });
+const glowTex = canvasTex(128, 128, (g, w) => { const gr = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.5, 'rgba(255,255,255,0)'); gr.addColorStop(.6, 'rgba(255,255,255,1)'); gr.addColorStop(.74, 'rgba(255,255,255,.55)'); gr.addColorStop(.9, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, w); }, false);
+const glowGeo = new THREE.PlaneGeometry(R * 3.2, R * 3.2); glowGeo.rotateX(-Math.PI / 2);
+const glowMat = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, depthWrite: false });
+function buildBalls() {
+  for (let n = 0; n <= 15; n++) {
+    const mat = new THREE.MeshLambertMaterial({ map: ballTexture(n),   });
+    const m = new THREE.Mesh(ballGeo, mat); m.castShadow = true; m.receiveShadow = true;
+    const sh = new THREE.Mesh(blobGeo, blobMat), gl = new THREE.Mesh(glowGeo, glowMat); gl.visible = false; scene.add(m, sh, gl);
+    balls.push({ n, x: 0, z: 0, vx: 0, vz: 0, active: true, mesh: m, shadow: sh, glow: gl, anim: null });
+  }
+}
+const _q = new THREE.Quaternion(), _ax = new THREE.Vector3();
+function rotateBall(b, ax, az, ang) { _ax.set(ax, 0, az); _q.setFromAxisAngle(_ax, ang); b.mesh.quaternion.premultiply(_q); }
+
+/* ---------- Tongkat (cue) ---------- */
+const cue = new THREE.Group();
+function buildCue() {
+  const seg = (z0, z1, r0, r1, mat) => { const g = new THREE.CylinderGeometry(r1, r0, z1 - z0, 14); g.rotateX(Math.PI / 2); g.translate(0, 0, (z0 + z1) / 2); const m = new THREE.Mesh(g, mat); m.castShadow = true; cue.add(m); };
+  const pm = (c, r = .35) => new THREE.MeshLambertMaterial({ color: c });
+  seg(0, .010, .0062, .0063, pm('#3c6fb0', .8, 0));
+  seg(.010, .032, .0063, .0064, pm('#f4f1ea', .3));
+  seg(.032, .74, .0064, .0098, pm('#e4c996', .32));
+  seg(.74, .765, .0098, .0100, chromeMat);
+  seg(.765, 1.04, .0100, .0118, pm('#22130b', .25));
+  seg(1.04, 1.045, .0118, .0118, chromeMat);
+  seg(1.045, 1.30, .0118, .0132, pm('#151515', .7, .1));
+  seg(1.30, 1.305, .0132, .0132, chromeMat);
+  seg(1.305, 1.45, .0132, .0142, pm('#22130b', .25));
+  seg(1.45, 1.465, .0142, .0138, pm('#0b0b0b', .6, .2));
+  scene.add(cue);
+}
+
+/* ---------- Garis bantu ---------- */
+const guide = new THREE.Group();
+const gMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: .9, depthWrite: false });
+const dashSrc = document.createElement('canvas'); dashSrc.width = 64; dashSrc.height = 4;
+{ const g = dashSrc.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 38, 4); }
+function dashMat() { const t = new THREE.CanvasTexture(dashSrc); t.wrapS = THREE.RepeatWrapping; return new THREE.MeshBasicMaterial({ map: t, color: '#ffffff', transparent: true, opacity: .92, depthWrite: false }); }
+const stripGeo = new THREE.PlaneGeometry(1, 1); stripGeo.rotateX(-Math.PI / 2);
+const gMain = new THREE.Mesh(stripGeo, dashMat()), gObj = new THREE.Mesh(stripGeo, dashMat()), gCue = new THREE.Mesh(stripGeo, dashMat());
+const ghost = new THREE.Mesh(new THREE.RingGeometry(R - .0018, R, 48), gMat); ghost.rotation.x = -Math.PI / 2;
+guide.add(gMain, gObj, gCue, ghost); scene.add(guide);
+function setStrip(m, x1, z1, x2, z2, w) {
+  const dx = x2 - x1, dz = z2 - z1, len = Math.hypot(dx, dz);
+  m.visible = len > .002; m.position.set((x1 + x2) / 2, .0015, (z1 + z2) / 2);
+  m.scale.set(len, 1, w); m.rotation.y = -Math.atan2(dz, dx);
+  if (m.material.map) m.material.map.repeat.x = Math.max(1, len / .032);
+}
+
+/* ============ AUDIO ============ */
+let AC = null, noiseBuf = null;
+function initAudio() {
+  if (AC) { if (AC.state === 'suspended') AC.resume(); setTimeout(musicStartOnce, 0); return; }
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    noiseBuf = AC.createBuffer(1, AC.sampleRate * .25, AC.sampleRate);
+    const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  } catch (e) { AC = null; }
+  setTimeout(musicStartOnce, 0);
+}
+['touchend', 'click', 'pointerup', 'keydown'].forEach(ev => addEventListener(ev, initAudio, { capture: true, passive: true }));
+function applause(dur) {
+  if (!AC || !settings.sound) return;
+  const now = AC.currentTime, master = AC.createGain();
+  master.gain.setValueAtTime(0, now); master.gain.linearRampToValueAtTime(.6, now + .35);
+  master.gain.setValueAtTime(.6, now + dur * .6); master.gain.linearRampToValueAtTime(0, now + dur);
+  master.connect(AC.destination);
+  const claps = Math.floor(dur * 55);
+  for (let i = 0; i < claps; i++) {
+    const t = now + Math.random() * dur * .95, src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+    src.buffer = noiseBuf; f.type = 'bandpass'; f.frequency.value = 800 + Math.random() * 1700; f.Q.value = .7 + Math.random() * .8;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.25 + Math.random() * .45, t + .002); g.gain.exponentialRampToValueAtTime(.001, t + .05 + Math.random() * .05);
+    src.connect(f); f.connect(g); g.connect(master); src.start(t, Math.random() * .12, .11);
+  }
+}
+const lastSnd = {};
+function snd(kind, vol) {
+  if (!AC || !settings.sound) return;
+  const now = AC.currentTime; if (lastSnd[kind] && now - lastSnd[kind] < .025) return; lastSnd[kind] = now;
+  vol = Math.min(1, Math.max(0, vol));
+  const g = AC.createGain(); g.connect(AC.destination);
+  const src = AC.createBufferSource(); src.buffer = noiseBuf;
+  const f = AC.createBiquadFilter(); src.connect(f); f.connect(g);
+  if (kind === 'ball') {
+    f.type = 'bandpass'; f.frequency.value = 3200; f.Q.value = 1.4;
+    g.gain.setValueAtTime(vol * .9, now); g.gain.exponentialRampToValueAtTime(.001, now + .06);
+    const o = AC.createOscillator(), og = AC.createGain(); o.frequency.value = 2100; o.connect(og); og.connect(AC.destination);
+    og.gain.setValueAtTime(vol * .25, now); og.gain.exponentialRampToValueAtTime(.001, now + .04); o.start(now); o.stop(now + .05);
+  } else if (kind === 'cushion') {
+    f.type = 'lowpass'; f.frequency.value = 380; g.gain.setValueAtTime(vol * .9, now); g.gain.exponentialRampToValueAtTime(.001, now + .12);
+  } else if (kind === 'cue') {
+    f.type = 'bandpass'; f.frequency.value = 1500; f.Q.value = 2; g.gain.setValueAtTime(vol * .8, now); g.gain.exponentialRampToValueAtTime(.001, now + .05);
+  } else if (kind === 'pocket') {
+    f.type = 'lowpass'; f.frequency.value = 600; g.gain.setValueAtTime(.7, now); g.gain.exponentialRampToValueAtTime(.001, now + .22);
+    const o = AC.createOscillator(), og = AC.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(180, now); o.frequency.exponentialRampToValueAtTime(70, now + .2);
+    o.connect(og); og.connect(AC.destination); og.gain.setValueAtTime(.35, now); og.gain.exponentialRampToValueAtTime(.001, now + .22); o.start(now); o.stop(now + .25);
+  }
+  src.start(now); src.stop(now + .25);
+}
+
+/* ============ FISIKA ============ */
+//#PHYS-START
+let shot = null;
+function onBallHit(a, c, rel) {
+  if (shot) {
+    if (shot.firstHit === null) { if (a.n === 0) shot.firstHit = c.n; else if (c.n === 0) shot.firstHit = a.n; }
+    const cb = a.n === 0 ? a : (c.n === 0 ? c : null);
+    if (cb && !shot.spinDone) { shot.spinDone = true; const k = shot.sy * rel * 0.62; cb.vx += shot.dx * k; cb.vz += shot.dz * k; const sk = shot.sx * rel * .12; cb.vx += -shot.dz * sk; cb.vz += shot.dx * sk; }
+  }
+  snd('ball', rel / 4);
+}
+function bounceRail(b, axis, sign) {
+  // axis 'z' = rel panjang (normal z), 'x' = rel pendek
+  const vn = axis === 'z' ? b.vz * sign : b.vx * sign;
+  if (vn <= 0) return;
+  let kick = 0;
+  if (shot && b.n === 0 && shot.sx) {
+    // efek samping: dorongan ke arah "kanan" lintasan bola (komponen tangensial)
+    const right = axis === 'z' ? -b.vz : b.vx;
+    kick = shot.sx * vn * 0.32 * Math.sign(right);
+    shot.sx *= 0.5;
+  }
+  if (axis === 'z') { b.vz = -b.vz * E_CUSH; b.vx = b.vx * 0.96 + kick; }
+  else { b.vx = -b.vx * E_CUSH; b.vz = b.vz * 0.96 + kick; }
+  if (shot && shot.firstHit !== null) shot.railAfter = true;
+  snd('cushion', vn / 3);
+}
+function cushion(b) {
+  const inLong = Math.abs(b.x) > SG && Math.abs(b.x) < X - CG;
+  const inShort = Math.abs(b.z) < Z - CG;
+  if (inLong) {
+    if (b.z > Z - R) { b.z = Z - R; bounceRail(b, 'z', 1); }
+    else if (b.z < -Z + R) { b.z = -Z + R; bounceRail(b, 'z', -1); }
+  }
+  if (inShort) {
+    if (b.x > X - R) { b.x = X - R; bounceRail(b, 'x', 1); }
+    else if (b.x < -X + R) { b.x = -X + R; bounceRail(b, 'x', -1); }
+  }
+  for (const J of JAWS) {
+    const dx = b.x - J[0], dz = b.z - J[1], d2 = dx * dx + dz * dz;
+    if (d2 < R * R && d2 > 1e-14) {
+      const d = Math.sqrt(d2), nx = dx / d, nz = dz / d;
+      b.x = J[0] + nx * R; b.z = J[1] + nz * R;
+      const vn = b.vx * nx + b.vz * nz;
+      if (vn < 0) { b.vx -= (1 + E_CUSH) * vn * nx; b.vz -= (1 + E_CUSH) * vn * nz; snd('cushion', -vn / 3); if (shot && shot.firstHit !== null) shot.railAfter = true; }
+    }
+  }
+}
+function potBall(b, p) {
+  b.active = false; b.vx = b.vz = 0;
+  b.anim = { t: 0, fx: b.x, fz: b.z, p };
+  if (shot) { if (b.n === 0) shot.cuePotted = true; else shot.potted.push(b.n); }
+  snd('pocket', 1);
+}
+function checkPocket(b) {
+  for (const p of POCKETS) { const dx = b.x - p.x, dz = b.z - p.z; if (dx * dx + dz * dz < p.pr * p.pr) { potBall(b, p); return true; } }
+  if (Math.abs(b.x) > X + R * .9 || Math.abs(b.z) > Z + R * .9) {
+    let best = POCKETS[0], bd = 1e9;
+    for (const p of POCKETS) { const d = Math.hypot(b.x - p.x, b.z - p.z); if (d < bd) { bd = d; best = p; } }
+    potBall(b, best); return true;
+  }
+  return false;
+}
+function physicsStep(dt) {
+  let maxV = 0;
+  for (const b of balls) if (b.active) { const s = Math.hypot(b.vx, b.vz); if (s > maxV) maxV = s; }
+  if (maxV === 0) return false;
+  const n = Math.min(90, Math.max(2, Math.ceil(maxV * dt / (R * 0.25)))), h = dt / n;
+  for (let s = 0; s < n; s++) {
+    for (const b of balls) {
+      if (!b.active || (b.vx === 0 && b.vz === 0)) continue;
+      b.x += b.vx * h; b.z += b.vz * h;
+      const sp = Math.hypot(b.vx, b.vz);
+      rotateBall(b, b.vz / sp, -b.vx / sp, sp * h / R);
+      const ns = Math.max(0, sp - (ROLL_A + ROLL_K * sp) * h);
+      if (ns < 0.006) { b.vx = 0; b.vz = 0; } else { const f = ns / sp; b.vx *= f; b.vz *= f; }
+    }
+    for (let i = 0; i < balls.length; i++) {
+      const a = balls[i]; if (!a.active) continue;
+      for (let j = i + 1; j < balls.length; j++) {
+        const c = balls[j]; if (!c.active) continue;
+        const dx = c.x - a.x, dz = c.z - a.z, d2 = dx * dx + dz * dz;
+        if (d2 >= D2 || d2 < 1e-14) continue;
+        const d = Math.sqrt(d2), nx = dx / d, nz = dz / d, ov = (2 * R - d) / 2;
+        a.x -= nx * ov; a.z -= nz * ov; c.x += nx * ov; c.z += nz * ov;
+        const rel = (a.vx - c.vx) * nx + (a.vz - c.vz) * nz;
+        if (rel > 0) { const k = rel * (1 + E_BALL) / 2; a.vx -= k * nx; a.vz -= k * nz; c.vx += k * nx; c.vz += k * nz; onBallHit(a, c, rel); }
+      }
+    }
+    for (const b of balls) { if (!b.active) continue; cushion(b); checkPocket(b); }
+  }
+  return true;
+}
+function rackBalls() {
+  const s = 2 * R + 0.0003, idx = [];
+  for (let r = 0; r < 5; r++) for (let k = 0; k <= r; k++) idx.push([FOOT_X + r * s * 0.8660254, (k - r / 2) * s]);
+  const solids = [1, 2, 3, 4, 5, 6, 7].sort(() => Math.random() - .5), stripes = [9, 10, 11, 12, 13, 14, 15].sort(() => Math.random() - .5);
+  const order = new Array(15).fill(0); order[4] = 8;
+  const swap = Math.random() < .5; order[10] = swap ? solids.pop() : stripes.pop(); order[14] = swap ? stripes.pop() : solids.pop();
+  const rest = solids.concat(stripes).sort(() => Math.random() - .5);
+  for (let i = 0; i < 15; i++) if (!order[i]) order[i] = rest.pop();
+  balls.forEach(b => { b.active = true; b.vx = b.vz = 0; b.anim = null; });
+  order.forEach((num, i) => { const b = balls[num]; b.x = idx[i][0]; b.z = idx[i][1]; });
+  balls[0].x = HEAD_X; balls[0].z = 0;
+}
+//#PHYS-END
+
+/* ============ STATUS PERMAINAN ============ */
+const game = { mode: 'ai', players: [], cur: 0, isBreak: true, inHand: false, inHandKitchen: true, over: false };
+let state = 'menu';          // menu | aim | striking | moving | settle | over | paused
+let viewMode = 'aim';        // aim | top
+let aimAngle = 0, elev = .32, power = 0, spinX = 0, spinY = 0;
+let ai = null, settleT = 0, strikeT = 0;
+const group = n => n >= 1 && n <= 7 ? 'solid' : (n >= 9 ? 'stripe' : null);
+const groupBalls = g => g === 'solid' ? [1, 2, 3, 4, 5, 6, 7] : [9, 10, 11, 12, 13, 14, 15];
+const onTable = n => balls[n].active;
+const cleared = p => p.group && groupBalls(p.group).every(n => !onTable(n));
+const isAI = () => game.players[game.cur] && game.players[game.cur].ai;
+
+const TOUR = [
+  { label: 'Perempat Final', opp: 'Pak Budi', diff: 'easy' },
+  { label: 'Semifinal', opp: 'Bu Sari', diff: 'medium' },
+  { label: 'Final', opp: 'Pak Hendra', diff: 'hard' }
+];
+const match = { type: 'single', raceTo: 1, score: [0, 0], rack: 1, breaker: 0, round: 0 };
+const aiLevel = () => match.type === 'tour' ? TOUR[match.round].diff : settings.diff;
+const LEVEL_NAME = { easy: 'Santai', medium: 'Sedang', hard: 'Pro' };
+function startMatch(type, round = 0) {
+  match.type = type; match.round = round; match.raceTo = parseInt(settings.race, 10) || 1;
+  match.score = [0, 0]; match.rack = 1; match.breaker = 0;
+  game.mode = type === 'pvp' ? 'pvp' : 'ai';
+  const N = settings.names, nm = (v, d) => (v || '').trim().slice(0, 12) || d;
+  const oppName = type === 'tour' ? TOUR[round].opp : nm(N.ai, 'Komputer');
+  game.players = [
+    { name: nm(N.p1, type === 'pvp' ? 'Pemain 1' : 'Anda'), group: null, ai: false },
+    { name: type === 'pvp' ? nm(N.p2, 'Pemain 2') : oppName, group: null, ai: type !== 'pvp' }
+  ];
+  if (type === 'practice') { game.mode = 'practice'; game.players[1] = { name: 'Latihan', group: null, ai: false }; match.pots = 0; match.shots = 0; }
+  $('p1').style.display = type === 'practice' ? 'none' : '';
+  newGame();
+  if (type === 'tour') toast(`${TOUR[round].label} melawan ${TOUR[round].opp}`, 'good');
+  if (type === 'practice') toast('Latihan bebas: semua bola boleh dipukul, tanpa pelanggaran', 'good');
+}
+function newGame() {
+  game.players.forEach(p => p.group = null);
+  game.cur = match.breaker; game.isBreak = true; game.inHand = true; game.inHandKitchen = true; game.over = false;
+  rackBalls(); syncMeshes();
+  balls.forEach(b => { b.mesh.visible = true; b.mesh.quaternion.setFromEuler(new THREE.Euler(Math.random() * 6, Math.random() * 6, Math.random() * 6)); });
+  aimAngle = 0; elev = .32; setView('aim'); resetSpin();
+  $('menu').classList.add('hidden'); $('over').classList.add('hidden'); $('pause').classList.add('hidden'); $('hud').classList.remove('hidden');
+  updateHUD(); startTurn(true);
+}
+
+function startTurn(first) {
+  state = 'aim'; power = 0; setPowerUI(0); ai = null; resetSpin();
+  if (!first) aimAngle = defaultAim();
+  updateHUD();
+  const p = game.players[game.cur];
+  if (game.inHand && !p.ai) {
+    hint(game.inHandKitchen ? 'Bola di tangan: geser bola putih di area belakang garis' : 'Bola di tangan: geser bola putih ke mana saja');
+  } else hint(p.ai ? 'Komputer sedang membidik…' : 'Geser layar untuk membidik · Ketuk bola untuk bidik langsung');
+}
+
+function defaultAim() {
+  const cb = balls[0], p = game.players[game.cur];
+  let targets = legalTargets(p); if (!targets.length) targets = balls.filter(b => b.active && b.n).map(b => b.n);
+  let best = null, bd = 1e9;
+  for (const n of targets) { const b = balls[n]; const d = Math.hypot(b.x - cb.x, b.z - cb.z); if (d < bd) { bd = d; best = b; } }
+  return best ? Math.atan2(best.z - cb.z, best.x - cb.x) : 0;
+}
+function legalTargets(p) {
+  if (match.type === 'practice') return balls.filter(b => b.active && b.n).map(b => b.n);
+  if (!p.group) return balls.filter(b => b.active && b.n && b.n !== 8).map(b => b.n);
+  if (cleared(p)) return [8];
+  return groupBalls(p.group).filter(onTable);
+}
+
+function shoot(pw) {
+  if (state !== 'aim') return;
+  initAudio();
+  state = 'striking'; strikeT = 0; power = pw;
+  game.inHand = false;
+  hint('');
+}
+function applyShot() {
+  const pw = power, cb = balls[0];
+  const dx = Math.cos(aimAngle), dz = Math.sin(aimAngle);
+  const speed = 0.35 + 6.4 * Math.pow(pw, 1.45);
+  cb.vx = dx * speed; cb.vz = dz * speed;
+  const p = game.players[game.cur];
+  shot = { dx, dz, sx: spinX, sy: spinY, firstHit: null, potted: [], cuePotted: false, spinDone: false, railAfter: false, wasCleared: cleared(p), isBreak: game.isBreak };
+  snd('cue', .3 + pw * .7);
+  state = 'moving';
+  setPowerUI(0); power = 0;
+}
+
+function evaluateShot() {
+  if (match.type === 'practice') {   // latihan bebas: tanpa giliran, tanpa pelanggaran
+    const s = shot; shot = null; game.isBreak = false; game.cur = 0;
+    match.shots++; match.pots += s.potted.length;
+    if (s.cuePotted) { respawnCue(); game.inHand = true; game.inHandKitchen = false; toast('Bola putih masuk — taruh lagi di mana saja'); }
+    else if (s.potted.length) toast(pick(['Masuk! 👍', 'Pukulan cantik!', 'Bagus!']), 'good');
+    if (balls.every(b => b.n === 0 || !b.active)) { state = 'rerack'; toast('Semua bola masuk! Bola disusun ulang 🎉', 'good'); applause(3); setTimeout(() => { if (state === 'rerack') newGame(); }, 1400); return; }
+    startTurn(false); return;
+  }
+  const s = shot; shot = null;
+  const me = game.players[game.cur], op = game.players[1 - game.cur];
+  let foul = false, reason = '';
+  const target = me.group ? (s.wasCleared ? 8 : me.group) : null;
+  if (s.cuePotted) { foul = true; reason = 'Bola putih masuk lubang'; }
+  else if (s.firstHit === null) { foul = true; reason = 'Tidak mengenai bola apa pun'; }
+  else if (target === 8 && s.firstHit !== 8) { foul = true; reason = 'Harus mengenai bola 8 lebih dulu'; }
+  else if (target && target !== 8 && group(s.firstHit) !== target) { foul = true; reason = s.firstHit === 8 ? 'Mengenai bola 8 lebih dulu' : 'Mengenai bola lawan lebih dulu'; }
+  else if (!target && s.firstHit === 8 && !s.isBreak) { foul = true; reason = 'Mengenai bola 8 lebih dulu'; }
+  else if (!s.isBreak && !s.potted.length && !s.railAfter) { foul = true; reason = 'Tidak ada bola yang menyentuh bantalan'; }
+
+  // bola 8 masuk
+  if (s.potted.includes(8)) {
+    if (s.isBreak) {
+      respot8(); toast('Bola 8 masuk saat break — dikembalikan ke titik', 'good');
+    } else {
+      const win = !foul && s.wasCleared;
+      return endGame(win ? game.cur : 1 - game.cur, win ? `${me.name} memasukkan bola 8 dengan sempurna` : (s.wasCleared ? `Bola 8 masuk disertai pelanggaran: ${reason.toLowerCase()}` : `${me.name} memasukkan bola 8 terlalu cepat`));
+    }
+  }
+  const pottedNon8 = s.potted.filter(n => n !== 8);
+  if (!me.group && !foul && !s.isBreak && pottedNon8.length) {
+    me.group = group(pottedNon8[0]); op.group = me.group === 'solid' ? 'stripe' : 'solid';
+    toast(`${me.name}: ${me.group === 'solid' ? 'Bola Penuh (1–7)' : 'Bola Belang (9–15)'}`, 'good');
+  }
+  let keep = false;
+  if (!foul) {
+    if (!me.group) keep = pottedNon8.length > 0;
+    else keep = pottedNon8.some(n => group(n) === me.group);
+  }
+  game.isBreak = false;
+  if (s.cuePotted) respawnCue();
+  if (foul) {
+    toast(`Pelanggaran! ${reason}`, 'warn');
+    game.inHand = true; game.inHandKitchen = s.isBreak && s.cuePotted;
+    game.cur = 1 - game.cur;
+    if (game.players[game.cur].ai) aiPlaceCue();
+  } else if (!keep) {
+    game.cur = 1 - game.cur;
+    toast(`Giliran ${game.players[game.cur].name}`);
+  } else if (pottedNon8.length) {
+    toast(pick(['Bagus! Lanjutkan', 'Masuk! Giliran tetap', 'Pukulan cantik!']), 'good');
+  }
+  startTurn(false);
+}
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function freeSpot(x, z) {
+  for (let i = 0; i < 80; i++) {
+    const tx = x + (i ? (i % 2 ? 1 : -1) * Math.ceil(i / 2) * R * 2.05 : 0);
+    if (Math.abs(tx) < X - R && balls.every(b => !b.active || b.mesh.visible === false || Math.hypot(b.x - tx, b.z - z) > 2 * R + .001)) return [tx, z];
+  }
+  return [x, z];
+}
+function respot8() { const b = balls[8]; const [x, z] = freeSpot(FOOT_X, 0); b.x = x; b.z = z; b.active = true; b.anim = null; b.mesh.visible = true; }
+function respawnCue() { const b = balls[0]; b.active = true; b.anim = null; b.mesh.visible = true; const [x, z] = freeSpot(HEAD_X, 0); b.x = x; b.z = z; b.vx = b.vz = 0; }
+
+let overAction = null;
+function showOver(brand, title, reason, btnText, action) {
+  overAction = action;
+  $('overBrand').textContent = brand; $('overTitle').textContent = title; $('overReason').textContent = reason; $('btnAgain').textContent = btnText;
+  setTimeout(() => { $('over').classList.remove('hidden'); poke(); }, 900);
+}
+function endGame(winner, reason) {
+  game.over = true; state = 'over';
+  const w = game.players[winner], humanWon = match.type === 'pvp' || winner === 0;
+  match.score[winner]++;
+  updateHUD();
+  const sc = `Skor ${match.score[0]} – ${match.score[1]}`;
+  if (match.score[winner] < match.raceTo) {   // rack selesai, pertandingan lanjut
+    if (humanWon) setTimeout(() => applause(2), 500);
+    return showOver(`Rack ${match.rack} selesai · ${sc}`, `Rack untuk ${w.name}`, reason, 'Rack Berikutnya', () => { match.rack++; match.breaker = 1 - match.breaker; newGame(); });
+  }
+  if (humanWon) setTimeout(() => applause(match.type === 'tour' && match.round === 2 ? 5 : 3.5), 500);
+  if (match.type === 'pvp') return showOver(`Pertandingan selesai · ${sc}`, `${w.name} Menang! 🏆`, reason, 'Main Lagi', () => startMatch('pvp'));
+  if (match.type === 'single') return showOver(`Pertandingan selesai · ${sc}`, humanWon ? `${w.name} Menang! 🏆` : `${w.name} Menang`, reason, 'Main Lagi', () => startMatch('single'));
+  const R = TOUR[match.round];
+  if (!humanWon) return showOver(`Turnamen · ${R.label} · ${sc}`, `Tersingkir di ${R.label}`, reason, 'Ulangi Turnamen', () => startMatch('tour', 0));
+  if (match.round < TOUR.length - 1) return showOver(`Turnamen · ${R.label} · ${sc}`, `Lolos ke ${TOUR[match.round + 1].label}!`, `${game.players[0].name} mengalahkan ${R.opp}. ${reason}`, `Lanjut ke ${TOUR[match.round + 1].label}`, () => startMatch('tour', match.round + 1));
+  return showOver(`Turnamen · Final · ${sc}`, 'JUARA TURNAMEN! 🏆', `Selamat ${game.players[0].name}! Anda mengalahkan ${R.opp} di Final.`, 'Main Turnamen Lagi', () => startMatch('tour', 0));
+}
+
+/* ============ KOMPUTER (AI) ============ */
+const DIFF = { easy: { err: .03, think: 1.1 }, medium: { err: .012, think: .9 }, hard: { err: .004, think: .7 } };
+function pathClear(x1, z1, x2, z2, skip) {
+  const dx = x2 - x1, dz = z2 - z1, len2 = dx * dx + dz * dz || 1e-9;
+  for (const b of balls) {
+    if (!b.active || skip.includes(b.n)) continue;
+    let t = ((b.x - x1) * dx + (b.z - z1) * dz) / len2; t = Math.max(0, Math.min(1, t));
+    const px = x1 + dx * t - b.x, pz = z1 + dz * t - b.z;
+    if (px * px + pz * pz < (2 * R * 0.98) ** 2) return false;
+  }
+  return true;
+}
+function bestShotFrom(cx, cz, p) {
+  let best = null;
+  for (const n of legalTargets(p)) {
+    const t = balls[n];
+    for (const pk of POCKETS) {
+      const ax = pk.x * .985, az = pk.z * .97;
+      const tpx = ax - t.x, tpz = az - t.z, d2 = Math.hypot(tpx, tpz), ux = tpx / d2, uz = tpz / d2;
+      if (pk.x === 0 && Math.abs(uz) < .45) continue;
+      const gx = t.x - ux * 2 * R, gz = t.z - uz * 2 * R;
+      const vx = gx - cx, vz = gz - cz, d1 = Math.hypot(vx, vz); if (d1 < 1e-4) continue;
+      const cos = (vx * ux + vz * uz) / d1; if (cos < .3) continue;
+      if (!pathClear(cx, cz, gx, gz, [0, n])) continue;
+      if (!pathClear(t.x, t.z, ax, az, [0, n])) continue;
+      const score = cos * cos / (.35 + d1 + d2 * 1.4);
+      if (!best || score > best.score) best = { n, score, angle: Math.atan2(vz, vx), power: Math.min(.82, Math.max(.2, .18 + (d1 + d2 / Math.max(cos, .35)) * .17)) };
+    }
+  }
+  return best;
+}
+function aiPlaceCue() {
+  const p = game.players[game.cur]; let best = null, bx = HEAD_X, bz = 0;
+  for (let i = 0; i < 60; i++) {
+    const x = game.inHandKitchen ? -X + R * 2 + Math.random() * (X / 2 - R * 3) : (Math.random() * 2 - 1) * (X - R * 2), z = (Math.random() * 2 - 1) * (Z - R * 2);
+    if (!balls.every(b => !b.active || b.n === 0 || Math.hypot(b.x - x, b.z - z) > 2.2 * R)) continue;
+    const s = bestShotFrom(x, z, p); if (s && (!best || s.score > best.score)) { best = s; bx = x; bz = z; }
+  }
+  const cb = balls[0]; cb.active = true; cb.mesh.visible = true; cb.x = bx; cb.z = bz;
+}
+function planAI() {
+  const p = game.players[game.cur], cb = balls[0], d = DIFF[aiLevel()] || DIFF.medium;
+  let plan;
+  if (game.isBreak) {
+    const apex = balls.filter(b => b.active && b.n).sort((a, b) => a.x - b.x)[0];
+    plan = { angle: Math.atan2(apex.z - cb.z + (Math.random() - .5) * .01, apex.x - cb.x), power: .92 + Math.random() * .08 };
+  } else {
+    plan = bestShotFrom(cb.x, cb.z, p);
+    if (!plan || (aiLevel() === 'easy' && Math.random() < .15)) {
+      const t = legalTargets(p).map(n => balls[n]).sort((a, b) => Math.hypot(a.x - cb.x, a.z - cb.z) - Math.hypot(b.x - cb.x, b.z - cb.z))[0] || balls.find(b => b.active && b.n);
+      plan = { angle: Math.atan2(t.z - cb.z, t.x - cb.x), power: .45 };
+    }
+    plan.angle += (Math.random() * 2 - 1) * d.err * (1 + Math.random());
+    plan.power = Math.min(1, plan.power * (1 + (Math.random() - .5) * d.err * 6));
+  }
+  return { ...plan, t: 0, think: d.think, from: aimAngle };
+}
+function updateAI(dt) {
+  if (!ai) { ai = planAI(); ai.wait = .5; }
+  if (ai.wait > 0) { ai.wait -= dt; return; }
+  ai.t += dt;
+  const k = Math.min(1, ai.t / ai.think), e = k * k * (3 - 2 * k);
+  let diff = (ai.angle - ai.from + Math.PI) % (Math.PI * 2); if (diff < 0) diff += Math.PI * 2; diff -= Math.PI;
+  aimAngle = ai.from + diff * e;
+  if (k >= 1) {
+    const k2 = Math.min(1, (ai.t - ai.think) / .55);
+    power = ai.power * k2; setPowerUI(power);
+    if (k2 >= 1 && ai.t > ai.think + .75) { aimAngle = ai.angle; shoot(ai.power); }
+  }
+}
+
+/* ============ KAMERA ============ */
+const camPos = new THREE.Vector3(2.6, 1.6, 2.2), camLook = new THREE.Vector3(), camUp = new THREE.Vector3(0, 1, 0);
+const tPos = new THREE.Vector3(), tLook = new THREE.Vector3(), tUp = new THREE.Vector3();
+let shotOrigin = { x: 0, z: 0, a: 0 }, clock = 0;
+const portrait = () => innerHeight > innerWidth;
+function topHeight() {
+  const tv = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2), th = tv * camera.aspect;
+  const hx = X + CW + RW + .08, hz = Z + CW + RW + .1;
+  return portrait() ? Math.max(hx / tv, hz / th) : Math.max(hx / th, hz / tv);
+}
+function updateCamera(dt) {
+  const cb = balls[0];
+  tUp.set(0, 1, 0);
+  if (state === 'menu' || (state === 'over' && !$('over').classList.contains('hidden'))) {
+    const a = clock * .12; tPos.set(Math.cos(a) * 2.7, 1.25, Math.sin(a) * 2.0); tLook.set(0, -.05, 0);
+  } else if (viewMode === 'top') {
+    if (portrait()) tUp.set(1, 0, 0); else tUp.set(0, 0, -1);
+    const tv = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2), th = tv * camera.aspect, Hh = innerHeight;
+    const topPx = $('players').getBoundingClientRect().bottom + 8;
+    let botPx = 12; if (portrait()) { const tops = [$('actCol'), $('fine')].filter(e => e.offsetParent).map(e => e.getBoundingClientRect().top); if (tops.length) botPx = Hh - Math.min(...tops) + 8; }
+    const avail = Math.max(120, Hh - topPx - botPx), hx = X + CW + RW + .03, hz = Z + CW + RW + .03;
+    const longV = portrait() ? hx : hz, across = portrait() ? hz : hx;
+    const H = Math.max(longV / (tv * avail / Hh), across / th);
+    const shift = ((topPx + avail / 2) - Hh / 2) * (2 * H * tv / Hh);
+    tPos.set(tUp.x * shift, H, tUp.z * shift); tLook.set(tUp.x * shift, 0, tUp.z * shift);
+  } else if (state === 'moving' || state === 'settle' || state === 'over') {
+    const dx = Math.cos(shotOrigin.a), dz = Math.sin(shotOrigin.a), pf = portrait() ? 1.45 : 1;
+    tPos.set(shotOrigin.x - dx * 1.0 * pf, 1.25 * pf, shotOrigin.z - dz * 1.0 * pf);
+    tLook.set(shotOrigin.x * .45 + dx * .5, 0, shotOrigin.z * .45 + dz * .5);
+  } else {
+    const dx = Math.cos(aimAngle), dz = Math.sin(aimAngle), pf = portrait() ? 1.55 : 1;
+    const D = (.5 + elev * 1.1) * pf, H = (.11 + elev * 1.15) * pf, ahead = .3 + elev * .7;
+    tPos.set(cb.x - dx * D, H, cb.z - dz * D);
+    tLook.set(cb.x + dx * ahead, 0, cb.z + dz * ahead);
+  }
+  const k = 1 - Math.exp(-dt * (state === 'aim' && viewMode === 'aim' ? 14 : 4));
+  camPos.lerp(tPos, k); camLook.lerp(tLook, k); camUp.lerp(tUp, k).normalize();
+  camera.position.copy(camPos); camera.up.copy(camUp); camera.lookAt(camLook);
+}
+
+/* ============ TAMPILAN TONGKAT & GARIS ============ */
+function castAim(dx, dz) {
+  const cb = balls[0]; let best = Infinity, hb = null;
+  for (const b of balls) {
+    if (!b.active || b.n === 0) continue;
+    const rx = b.x - cb.x, rz = b.z - cb.z, proj = rx * dx + rz * dz; if (proj <= 0) continue;
+    const perp2 = rx * rx + rz * rz - proj * proj; if (perp2 >= D2) continue;
+    const t = proj - Math.sqrt(D2 - perp2); if (t < best) { best = t; hb = b; }
+  }
+  const tx = dx > 0 ? (X - R - cb.x) / dx : dx < 0 ? (-X + R - cb.x) / dx : Infinity;
+  const tz = dz > 0 ? (Z - R - cb.z) / dz : dz < 0 ? (-Z + R - cb.z) / dz : Infinity;
+  const tc = Math.min(tx, tz);
+  if (tc < best) { best = tc; hb = null; }
+  return { t: Math.max(0, best), hb };
+}
+function updateShootUI() {
+  const can = state === 'aim' && !isAI();
+  $('actCol').style.visibility = state === 'aim' || state === 'moving' || state === 'settle' || state === 'striking' ? 'visible' : 'hidden';
+  $('btnShoot').style.display = can ? '' : 'none'; $('fine').style.display = can ? '' : 'none';
+  if (!can && !$('powerWrap').classList.contains('closed')) openPower(false);
+}
+function updateCueAndGuide() {
+  updateShootUI();
+  const cb = balls[0];
+  const showCue = (state === 'aim' || state === 'striking') && cb.active;
+  cue.visible = showCue;
+  const dx = Math.cos(aimAngle), dz = Math.sin(aimAngle);
+  if (showCue) {
+    let pull = power * .26;
+    if (state === 'striking') { const k = Math.min(1, strikeT / .09); pull = power * .26 * (1 - k) - .004 * k; }
+    const gap = R + .012 + pull, el = THREE.MathUtils.degToRad(4.5);
+    const tip = new THREE.Vector3(cb.x - dx * gap + 0, R + spinY * R * .5, cb.z - dz * gap);
+    tip.x += -dz * spinX * R * .5; tip.z += dx * spinX * R * .5;
+    cue.position.copy(tip);
+    cue.lookAt(tip.x - dx * Math.cos(el), tip.y + Math.sin(el), tip.z - dz * Math.cos(el));
+  }
+  guide.visible = state === 'aim' && cb.active && settings.guide === 'on' && !isAI();
+  if (guide.visible) {
+    const { t, hb } = castAim(dx, dz);
+    const ex = cb.x + dx * t, ez = cb.z + dz * t;
+    setStrip(gMain, cb.x + dx * R, cb.z + dz * R, ex - dx * R * (hb ? 1 : 0), ez - dz * R * (hb ? 1 : 0), .0045);
+    ghost.position.set(ex, .0016, ez); ghost.visible = true;
+    if (hb) {
+      const nx = (hb.x - ex) / (2 * R), nz = (hb.z - ez) / (2 * R), cos = Math.max(0, nx * dx + nz * dz);
+      const lo = .12 + .55 * cos;
+      setStrip(gObj, hb.x, hb.z, hb.x + nx * lo, hb.z + nz * lo, .0045);
+      let tx = dx - nx * cos, tz = dz - nz * cos; const tl = Math.hypot(tx, tz);
+      if (tl > .02) { tx /= tl; tz /= tl; setStrip(gCue, ex, ez, ex + tx * .25 * (1 - cos), ez + tz * .25 * (1 - cos), .0035); } else gCue.visible = false;
+      const legal = legalTargets(game.players[game.cur]).includes(hb.n) || (game.isBreak && hb.n);
+      ghost.material = legal ? gMat : gMatBad;
+    } else { gObj.visible = false; gCue.visible = false; ghost.material = gMat; }
+  }
+}
+const gMatBad = new THREE.MeshBasicMaterial({ color: '#8a9099', transparent: true, opacity: .9, depthWrite: false });
+
+let sugKey = '', sugN = -1;
+function syncMeshes() {
+  const p = game.players[game.cur];
+  let lit = [];
+  if (state === 'aim' && p && !p.ai && !game.isBreak && balls[0].active) {
+    const cb = balls[0], key = cb.x.toFixed(3) + cb.z.toFixed(3) + game.cur + balls.filter(b => b.active).length;
+    if (key !== sugKey) {   // bola sasaran yang disarankan: paling mudah dimasukkan, cadangan: bola sah terdekat
+      sugKey = key; const prevS = sugN; const s = bestShotFrom(cb.x, cb.z, p);
+      if (s) sugN = s.n; else { let bd = 1e9; sugN = -1; for (const n of legalTargets(p)) { const b = balls[n], d = Math.hypot(b.x - cb.x, b.z - cb.z); if (d < bd) { bd = d; sugN = n; } } }
+      if (sugN !== prevS) setTimeout(updateHUD, 0);
+    }
+    lit = [sugN];
+  }
+  for (const b of balls) { b.glow.visible = lit.includes(b.n) && b.active && !b.anim; if (b.glow.visible) b.glow.position.set(b.x, .0013, b.z); }
+  for (const b of balls) { if (!b.anim) b.mesh.position.set(b.x, R, b.z); b.shadow.visible = b.mesh.visible && !b.anim; b.shadow.position.set(b.mesh.position.x + .004, .0011, b.mesh.position.z); } }
+function updatePocketAnims(dt) {
+  let busy = false;
+  for (const b of balls) {
+    if (!b.anim) continue; busy = true;
+    const a = b.anim; a.t += dt; const k = Math.min(1, a.t / .32);
+    const x = a.fx + (a.p.x - a.fx) * Math.min(1, k * 1.6), z = a.fz + (a.p.z - a.fz) * Math.min(1, k * 1.6);
+    b.mesh.position.set(x, R - k * k * .12, z);
+    if (k >= 1) { b.anim = null; b.mesh.visible = false; b.x = a.p.x; b.z = a.p.z; updateHUD(); }
+  }
+  return busy;
+}
+
+/* ============ HUD ============ */
+function ballIcon(n, gone) {
+  const c = colOf(n), st = n > 8;
+  const bg = st ? `linear-gradient(180deg,#f4f1e8 0 22%,${c} 22% 78%,#f4f1e8 78%)` : c;
+  return `<span class="bi${gone ? ' gone' : ''}${!gone && n === sugN ? ' next' : ''}" style="background:${bg}"><i>${n}</i></span>`;
+}
+function updateHUD() {
+  const lbl = match.type === 'practice' ? 'Latihan' : match.type === 'tour' ? TOUR[match.round].label : (match.raceTo > 1 ? `Race to ${match.raceTo}` : '8-Ball');
+  $('matchInfo').innerHTML = match.type === 'practice' ? `<small>Latihan Bebas</small><b>${match.pots || 0} masuk · ${match.shots || 0} pukulan</b>` : `<small>${lbl}</small><b>${match.score[0]} – ${match.score[1]}</b>`;
+  game.players.forEach((p, i) => {
+    const el = $('p' + i); if (!el) return;
+    el.classList.toggle('active', i === game.cur && !game.over);
+    el.querySelector('.pname').textContent = p.name;
+    el.querySelector('.avatar').textContent = p.ai ? (match.type === 'tour' ? p.name.split(' ').map(w => w[0]).join('').slice(0, 2) : 'AI') : (p.name.trim()[0] || String(i + 1)).toUpperCase();
+    el.querySelector('.pgroup').textContent = p.group ? (p.group === 'solid' ? 'Bola Penuh' : 'Bola Belang') : 'Meja terbuka';
+    el.querySelector('.tray').innerHTML = p.group ? groupBalls(p.group).map(n => ballIcon(n, !balls[n].mesh.visible)).join('') + (cleared(p) ? ballIcon(8, false) : '') : '';
+  });
+}
+let toastTimer = 0;
+function toast(text, type = '') {
+  const t = $('toast'); t.textContent = text; t.className = 'glass show ' + type;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2300);
+}
+function hint(t) { $('hint').textContent = t; }
+function setPowerUI(p) { $('powerFill').style.height = (p * 100) + '%'; $('powerCue').style.transform = `translate(-50%, ${p * 32}%)`; $('powerLabel').textContent = Math.round(p * 100) + '%'; }
+function resetSpin() { spinX = spinY = 0; const d = $('spinDot'); if (d) { d.style.left = '50%'; d.style.top = '50%'; } }
+const spinBallEl = $('spinBall'); let sdrag = false;
+function setSpin(e) {
+  const r = spinBallEl.getBoundingClientRect(); let x = (e.clientX - r.left) / r.width * 2 - 1, y = (e.clientY - r.top) / r.height * 2 - 1;
+  const l = Math.hypot(x, y); if (l > .75) { x *= .75 / l; y *= .75 / l; }
+  if (l < .12) { x = 0; y = 0; }
+  spinX = x; spinY = -y; $('spinDot').style.left = (50 + x * 50) + '%'; $('spinDot').style.top = (50 + y * 50) + '%'; poke();
+}
+spinBallEl.addEventListener('pointerdown', e => { e.stopPropagation(); if (state !== 'aim' || isAI()) return; sdrag = true; spinBallEl.setPointerCapture(e.pointerId); setSpin(e); });
+spinBallEl.addEventListener('pointermove', e => sdrag && setSpin(e));
+spinBallEl.addEventListener('pointerup', () => sdrag = false);
+
+/* ============ INPUT ============ */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -R), hit = new THREE.Vector3();
+function tablePoint(e) {
+  ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  return ray.ray.intersectPlane(plane, hit) ? hit.clone() : null;
+}
+let drag = null;
+canvas.addEventListener('pointerdown', e => {
+  initAudio();
+  if (state !== 'aim' || isAI()) return;
+  canvas.setPointerCapture(e.pointerId);
+  const p = tablePoint(e), cb = balls[0];
+  const onCue = game.inHand && p && Math.hypot(p.x - cb.x, p.z - cb.z) < R * 3.2;
+  drag = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false, cue: onCue };
+});
+canvas.addEventListener('pointermove', e => {
+  if (!drag || state !== 'aim') return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+  if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 6) drag.moved = true;
+  if (drag.cue) {
+    const p = tablePoint(e); if (!p) return;
+    const maxX = game.inHandKitchen ? HEAD_X : X - R, x = Math.max(-X + R, Math.min(maxX, p.x)), z = Math.max(-Z + R, Math.min(Z - R, p.z));
+    if (balls.every(b => !b.active || b.n === 0 || Math.hypot(b.x - x, b.z - z) > 2 * R + .001)) { balls[0].x = x; balls[0].z = z; }
+    return;
+  }
+  if (viewMode === 'top') { const p = tablePoint(e); if (p) aimAngle = Math.atan2(p.z - balls[0].z, p.x - balls[0].x); }
+  else {
+    aimAngle += dx * .0042 * (portrait() ? 1.3 : 1);
+    elev = Math.max(0, Math.min(.8, elev + dy * .0035));
+  }
+});
+const endDrag = e => {
+  if (!drag) return;
+  if (!drag.moved && !drag.cue && state === 'aim') { const p = tablePoint(e); if (p) aimAngle = Math.atan2(p.z - balls[0].z, p.x - balls[0].x); }
+  drag = null;
+};
+canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', () => drag = null);
+
+// power (tarik stik)
+document.addEventListener('touchmove', e => { if (!e.target.closest('.overlay')) e.preventDefault(); }, { passive: false });
+const track = $('powerWrap'); let pdrag = null;
+track.addEventListener('pointerdown', e => { initAudio(); if (e.target.closest('#spinWrap')) return; if (state !== 'aim' || isAI()) return; track.setPointerCapture(e.pointerId); pdrag = { y: e.clientY }; });
+track.addEventListener('pointermove', e => { if (!pdrag) return; power = Math.max(0, Math.min(1, (e.clientY - pdrag.y) / ($('powerTrack').clientHeight * .85))); setPowerUI(power); });
+const powerUp = () => { if (!pdrag) return; pdrag = null; if (power > .02 && state === 'aim') { shoot(power); openPower(false); } else { power = 0; setPowerUI(0); } };
+function openPower(v) { $('powerWrap').classList.toggle('closed', !v); $('btnShoot').classList.toggle('on', v); poke(); }
+$('btnShoot').onclick = () => { initAudio(); if (state === 'aim' && !isAI()) openPower($('powerWrap').classList.contains('closed')); };
+track.addEventListener('pointerup', powerUp); track.addEventListener('pointercancel', powerUp);
+
+
+// bidik halus (tahan untuk berulang)
+function holdBtn(el, fn) {
+  let t1, t2; const stop = () => { clearTimeout(t1); clearInterval(t2); };
+  el.addEventListener('pointerdown', e => { e.preventDefault(); if (state !== 'aim' || isAI()) return; fn(); poke(); t1 = setTimeout(() => t2 = setInterval(() => { fn(); poke(); }, 50), 300); });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => el.addEventListener(ev, stop));
+}
+holdBtn($('fineL'), () => aimAngle -= .0035);
+holdBtn($('fineR'), () => aimAngle += .0035);
+
+function setView(v) { viewMode = v; $('btnView').textContent = v === 'aim' ? 'Lihat Meja' : 'Bidik'; poke(); }
+$('btnView').onclick = () => setView(viewMode === 'aim' ? 'top' : 'aim');
+$('btnSound').onclick = () => { settings.sound = !settings.sound; saveSettings(); $('sndWave').style.opacity = settings.sound ? 1 : .15; };
+$('sndWave').style.opacity = settings.sound ? 1 : .15;
+$('btnFs').onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen().catch(() => toast('Layar penuh tidak didukung di sini')); } catch (e) { toast('Layar penuh tidak didukung di sini'); } };
+$('btnMenu').onclick = () => { if (state === 'over') return; $('pause').classList.remove('hidden'); };
+$('btnResume').onclick = () => $('pause').classList.add('hidden');
+$('btnRestart').onclick = () => startMatch(match.type, match.round);
+const goHome = () => { state = 'menu'; ['pause', 'over', 'hud'].forEach(id => $(id).classList.add('hidden')); $('menu').classList.remove('hidden'); rackBalls(); syncMeshes(); balls.forEach(b => b.mesh.visible = true); };
+$('btnHome').onclick = goHome; $('btnHome2').onclick = goHome;
+$('btnAgain').onclick = () => { initAudio(); if (overAction) overAction(); };
+[['nP1', 'p1'], ['nP2', 'p2'], ['nAI', 'ai']].forEach(([id, k]) => { const el = $(id); el.value = settings.names[k] || ''; el.addEventListener('input', () => { settings.names[k] = el.value; saveSettings(); }); });
+$('btnVsAI').onclick = () => { initAudio(); startMatch('single'); };
+$('btnPractice').onclick = () => { initAudio(); startMatch('practice'); };
+$('btnTour').onclick = () => { initAudio(); startMatch('tour', 0); };
+$('btnVs2').onclick = () => { initAudio(); startMatch('pvp'); };
+
+// segmented settings
+function refreshSegs() {
+  document.querySelectorAll('.seg').forEach(seg => {
+    const key = seg.dataset.key, val = key === 'guide' ? settings.guide : settings[key];
+    seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === val));
+  });
+}
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+  const key = b.parentElement.dataset.key; settings[key] = b.dataset.v; saveSettings(); refreshSegs();
+  if (key === 'quality') applyQuality();
+  if (key === 'music') { bgm.started = true; musicApply(); }
+  if (key === 'cloth') applyCloth();
+}));
+
+/* ============ MUSIK LATAR (bawaan "Lounge" atau lagu MP3 dari HP) ============ */
+const bgm = { audio: new Audio(), list: [], idx: 0, url: null, started: false, lounge: null, gain: null };
+bgm.audio.preload = 'auto';
+const DB = {
+  open() { return new Promise((res, rej) => { try { const r = indexedDB.open('hdp_biliar_music', 1); r.onupgradeneeded = () => r.result.createObjectStore('songs', { keyPath: 'id', autoIncrement: true }); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } }); },
+  async all() { const db = await this.open(); return new Promise(res => { const out = []; const c = db.transaction('songs').objectStore('songs').openCursor(); c.onsuccess = () => { const cur = c.result; if (cur) { out.push(cur.value); cur.continue(); } else res(out); }; c.onerror = () => res(out); }); },
+  async add(name, blob) { const db = await this.open(); return new Promise(res => { const t = db.transaction('songs', 'readwrite'); t.objectStore('songs').add({ name, blob }); t.oncomplete = res; t.onerror = res; }); },
+  async clear() { const db = await this.open(); return new Promise(res => { const t = db.transaction('songs', 'readwrite'); t.objectStore('songs').clear(); t.oncomplete = res; t.onerror = res; }); }
+};
+async function loadSongs() { try { bgm.list = await DB.all(); } catch (e) { /* penyimpanan tidak tersedia: daftar hanya untuk sesi ini */ } renderMusicUI(); }
+async function addSongs(files) {
+  for (const f of files) { const item = { name: f.name.replace(/\.[^.]+$/, ''), blob: f }; try { await DB.add(item.name, f); } catch (e) {} bgm.list.push(item); }
+  try { bgm.list = await DB.all(); } catch (e) {}
+  settings.music = 'hp'; saveSettings(); bgm.idx = bgm.list.length - files.length; musicApply(); renderMusicUI();
+}
+function renderMusicUI() {
+  document.querySelectorAll('.musicInfo').forEach(el => {
+    const cur = settings.music === 'hp' && bgm.list[bgm.idx];
+    el.textContent = settings.music === 'off' ? 'Musik mati' : settings.music === 'lounge' ? 'Memutar: Lounge Jazz (bawaan)' : (bgm.list.length ? `${bgm.list.length} lagu · ${cur ? '♪ ' + cur.name : ''}` : 'Belum ada lagu — tekan "Pilih lagu dari HP"');
+  });
+  document.querySelectorAll('.hpOnly').forEach(el => el.classList.toggle('hidden', settings.music !== 'hp'));
+  $('btnMusic').classList.toggle('off', settings.music === 'off');
+}
+function playSong() {
+  const s = bgm.list[bgm.idx]; if (!s) return;
+  if (bgm.url) URL.revokeObjectURL(bgm.url);
+  bgm.url = URL.createObjectURL(s.blob); bgm.audio.src = bgm.url; bgm.audio.volume = settings.musicVol;
+  bgm.audio.play().catch(() => {});
+  if ('mediaSession' in navigator) {
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({ title: s.name, artist: 'HDP Biliar · Hadiansyah DigitalPreneur', artwork: [{ src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' }] });
+      navigator.mediaSession.setActionHandler('nexttrack', () => nextSong(1));
+      navigator.mediaSession.setActionHandler('previoustrack', () => nextSong(-1));
+      navigator.mediaSession.setActionHandler('play', () => bgm.audio.play());
+      navigator.mediaSession.setActionHandler('pause', () => bgm.audio.pause());
+    } catch (e) {}
+  }
+  renderMusicUI();
+}
+function nextSong(d) { if (!bgm.list.length) return; bgm.idx = (bgm.idx + d + bgm.list.length) % bgm.list.length; playSong(); }
+bgm.audio.addEventListener('ended', () => nextSong(1));
+function musicApply() {
+  if (!bgm.started) return;
+  bgm.audio.pause(); loungeStop();
+  if (settings.music === 'hp' && bgm.list.length) playSong();
+  else if (settings.music === 'lounge') loungeStart();
+  renderMusicUI();
+}
+// "Lounge Jazz" bawaan: akor Rhodes lembut + bass + sapuan brush (disintesis, tanpa file)
+function loungeStart() {
+  if (!AC || bgm.lounge) return;
+  bgm.gain = AC.createGain(); bgm.gain.gain.value = settings.musicVol * .55; bgm.gain.connect(AC.destination);
+  const chords = [[50, 53, 57, 60, 64], [43, 53, 59, 64], [48, 52, 55, 59, 62], [45, 55, 61, 64]], spb = 60 / 84;
+  let step = 0, next = AC.currentTime + .1;
+  const note = (t, m, dur, vol, type = 'sine') => {
+    const o = AC.createOscillator(), g = AC.createGain(), f = 440 * Math.pow(2, (m - 69) / 12);
+    o.type = type; o.frequency.setValueAtTime(f, t); o.connect(g); g.connect(bgm.gain);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .02); g.gain.exponentialRampToValueAtTime(.0005, t + dur); o.start(t); o.stop(t + dur + .05);
+  };
+  const brush = (t, vol) => { const s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain(); s.buffer = noiseBuf; f.type = 'highpass'; f.frequency.value = 5000; s.connect(f); f.connect(g); g.connect(bgm.gain); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .03); g.gain.exponentialRampToValueAtTime(.0005, t + .22); s.start(t, Math.random() * .1, .3); };
+  bgm.lounge = setInterval(() => {
+    if (AC.state !== 'running') return;
+    while (next < AC.currentTime + .3) {
+      const beat = step % 4, ch = chords[Math.floor(step / 8) % 4];
+      if (step % 8 === 0) ch.forEach(m => { note(next, m + 12, 3.2, .045); note(next, m + 24, 1.6, .012, 'triangle'); });
+      if (step % 8 === 5) ch.slice(1).forEach(m => note(next, m + 12, 1.4, .03));
+      note(next, (beat % 2 ? ch[0] + 7 : ch[0]) - 12, .6, .09, 'triangle');      // bass jalan
+      if (beat === 1 || beat === 3) brush(next, .05); else brush(next, .018);
+      step++; next += spb;
+    }
+  }, 80);
+}
+function loungeStop() { if (bgm.lounge) { clearInterval(bgm.lounge); bgm.lounge = null; } if (bgm.gain) { try { bgm.gain.disconnect(); } catch (e) {} bgm.gain = null; } }
+function musicStartOnce() { if (bgm.started) return; bgm.started = true; musicApply(); }
+document.querySelectorAll('.songInput').forEach(inp => inp.addEventListener('change', () => { if (inp.files && inp.files.length) addSongs([...inp.files]); inp.value = ''; }));
+document.querySelectorAll('.btnNext').forEach(b => b.onclick = () => nextSong(1));
+document.querySelectorAll('.btnClear').forEach(b => b.onclick = async () => { try { await DB.clear(); } catch (e) {} bgm.list = []; bgm.audio.pause(); renderMusicUI(); });
+document.querySelectorAll('.volRange').forEach(r => { r.value = settings.musicVol; r.addEventListener('input', () => { settings.musicVol = +r.value; saveSettings(); bgm.audio.volume = settings.musicVol; if (bgm.gain) bgm.gain.gain.value = settings.musicVol * .55; document.querySelectorAll('.volRange').forEach(o => o.value = r.value); }); });
+$('btnMusic').onclick = () => { initAudio(); bgm.started = true; settings.music = settings.music === 'off' ? (settings.lastMusic || 'lounge') : (settings.lastMusic = settings.music, 'off'); saveSettings(); refreshSegs(); musicApply(); };
+document.addEventListener('visibilitychange', () => { if (document.hidden) { bgm.audio.pause(); } else if (bgm.started && settings.music === 'hp' && bgm.list.length) bgm.audio.play().catch(() => {}); });
+loadSongs();
+
+/* ============ APLIKASI ANDROID ============ */
+const IN_APP = /HDPGamesApp/.test(navigator.userAgent);
+if (IN_APP) $('btnFs').classList.add('hidden');
+window.hdpBack = () => {
+  if (state === 'menu') return 'exit';
+  if (!$('pause').classList.contains('hidden')) { $('pause').classList.add('hidden'); return 'ok'; }
+  if (!$('over').classList.contains('hidden')) { goHome(); return 'ok'; }
+  $('pause').classList.remove('hidden'); poke(); return 'ok';
+};
+document.addEventListener('visibilitychange', () => { if (document.hidden && state !== 'menu' && state !== 'over') $('pause').classList.remove('hidden'); });
+
+/* ============ PWA ============ */
+let installEvt = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('btnInstall').classList.remove('hidden'); });
+$('btnInstall').onclick = async () => { if (!installEvt) return; installEvt.prompt(); try { await installEvt.userChoice; } catch (e) {} installEvt = null; $('btnInstall').classList.add('hidden'); };
+if ('serviceWorker' in navigator && location.protocol === 'https:' && document.querySelector('link[rel=manifest]')) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+/* ============ LOOP ============ */
+function onResize() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight; camera.fov = portrait() ? 62 : 48; camera.updateProjectionMatrix();
+}
+addEventListener('resize', onResize);
+let last = performance.now(), dirty = 3;
+function poke() { dirty = 3; }
+['pointerdown', 'pointermove', 'pointerup', 'resize'].forEach(ev => addEventListener(ev, poke, { passive: true }));
+function loop(now) {
+  const dt = Math.min(.033, (now - last) / 1000); last = now; clock += dt;
+  if ($('pause').classList.contains('hidden')) {
+    if (state === 'aim' && isAI()) updateAI(dt);
+    if (state === 'striking') {
+      strikeT += dt;
+      if (strikeT >= .09) { shotOrigin = { x: balls[0].x, z: balls[0].z, a: aimAngle }; applyShot(); }
+    }
+    if (state === 'moving') {
+      const moving = physicsStep(dt);
+      const anim = updatePocketAnims(dt);
+      if (!moving && !anim) { state = 'settle'; settleT = 0; }
+    } else updatePocketAnims(dt);
+    if (state === 'settle') { settleT += dt; if (settleT > .35) evaluateShot(); }
+  }
+  syncMeshes();
+  updateCueAndGuide();
+  if (guide.visible) { for (const m of [gMain, gObj, gCue]) m.material.map.offset.x -= dt * 1.4; dirty = Math.max(dirty, 1); }
+  updateCamera(dt);
+  const camBusy = camPos.distanceToSquared(tPos) > 1e-7 || camLook.distanceToSquared(tLook) > 1e-7;
+  roomLamps.visible = viewMode !== 'top' && camera.position.y < 1.2;
+  if (state !== 'aim' || isAI() || camBusy || dirty > 0) renderer.render(scene, camera);
+  if (dirty > 0) dirty--;
+  requestAnimationFrame(loop);
+}
+
+/* ============ MULAI ============ */
+buildTable(); buildRoom(); buildBalls(); buildCue();
+rackBalls(); syncMeshes();
+balls.forEach(b => b.mesh.quaternion.setFromEuler(new THREE.Euler(Math.random() * 6, Math.random() * 6, Math.random() * 6)));
+refreshSegs(); applyQuality();
+requestAnimationFrame(loop);
+</script>
+
+<script>
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW:', err)));
+}
+</script>
+
+</body>
+</html>
